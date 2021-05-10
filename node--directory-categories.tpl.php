@@ -1,4 +1,6 @@
-	<?php
+	Hello World
+
+<?php
 	global $base_url;
 	global $user;
 	$path = drupal_get_path_alias('node/' . $node->nid);
