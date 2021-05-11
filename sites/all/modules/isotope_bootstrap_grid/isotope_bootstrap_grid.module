@@ -1,0 +1,107 @@
+<?php
+
+/**
+ * Implements hook_views_api().
+ */
+function isotope_bootstrap_grid_views_api() {
+  return array(
+    'api' => 2,    
+  );
+}
+
+/**
+ * Preprocess function for views_view_isotope_bootstrap_grid.tpl.php.
+ */
+function template_preprocess_views_view_isotope_bootstrap_grid(&$vars) {
+  // Run preprocess function for unformatted style
+  template_preprocess_views_view_unformatted($vars);  
+  module_load_include('inc', 'isotope_views', 'isotope_views.theme');
+  // Add some default CSS.
+  drupal_add_css(drupal_get_path('module', 'isotope_bootstrap_grid') . '/css/isotope_bootstrap_grid.css');
+
+  $items = array();
+  foreach ($vars['view']->result as $key => $value) {
+    $item['value'] = $vars['rows'][$key];
+    foreach ($vars['options']['data_fields'] as $fieldname) {
+      if (!empty($fieldname)) {
+        $item['data'][$fieldname] = isotope_views_helper_get_field_value($value, $fieldname);
+      }
+    }
+    $items[] = $item;
+  }
+  $instance_id = $vars['options']['instance_id'];
+  $config_name = !empty($vars['options']['config']) ? $vars['options']['config'] : 'isotope_default_config';
+
+  ///////////////////////////////////////////
+  // A config name specified in context will override whatever we have been
+  // passed.  
+  if (module_exists('context')) {
+    if ($plugin = context_get_plugin('reaction', 'isotope')) {
+      $context_name = $plugin->execute();
+      if (!empty($context_name)) {
+        $config_name = $context_name;
+      }
+    }
+  }
+  // Add the sorting options to the initial configuration.
+  $additional_config = array('getSortData' => array());
+  foreach ($items as $item) {
+    $item['data'] = !empty($item['data']) ? $item['data'] : array();
+    foreach ($item['data'] as $key => $value) {
+      $additional_config['getSortData'][$key] = '.' . $key;
+    }
+  }
+  // Retrieve the desired configuration (plus sorting options).
+  $config = isotope_get_config_json($config_name, $additional_config);
+  // Make sure the instance name is unique per page load.
+  $global_instances = &drupal_static(__FUNCTION__);
+  $global_instances = isset($global_instances) ? $global_instances : array();
+  if (!empty($instance_id) && !in_array($instance_id, $global_instances)) {
+    $instance_name = $instance_id;
+  }
+  else {
+    for ($i = 0; $i >= 0; $i++) {
+      if (!in_array($i, $global_instances)) {
+        $instance_name = $i;
+        // Break the infinite loop when successful.
+        break;
+      }
+    }
+  }
+  $global_instances[] = $instance_name;
+  $instance = 'isotope-instance-' . $instance_name;
+
+  $formatted_items = array(
+    array('data' => '', 'class' => array('isotope-grid-sizer')),
+    array('data' => '', 'class' => array('isotope-gutter-sizer')),
+  );
+
+  foreach ($items as $item) {
+    $sorts = '';
+    $item['data'] = !empty($item['data']) ? $item['data'] : array();
+    foreach ($item['data'] as $key => $value) {
+      if (!is_array($value)) {
+        $value = array($value);
+      }
+      foreach ($value as $sort) {
+        $sorts .= '<div class="sort-data ' . $key . '">' . isotope_sanitize($sort) . '</div>';
+      }
+      $item['data'][$key] = isotope_sanitize($value);
+    }
+    $classes = array_values($item['data']);
+    $classes[] = 'isotope-element';
+    $formatted_items[] = array(
+      'data' => $item['value'] . $sorts,
+      'class' => $classes,
+    );
+  }
+  $vars['container_atts'] = array(
+    'class' => 'isotope-container js-isotope',
+    'id' => $instance,
+    'data-isotope-options' => $config,
+  );
+  $vars['items'] = $formatted_items;  
+  drupal_add_js(drupal_get_path('module', 'isotope') . '/isotope.js');
+  drupal_add_css(drupal_get_path('module', 'isotope') . '/isotope.css');  
+  isotope_addjs($config_name);  
+}

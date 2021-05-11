@@ -1,0 +1,364 @@
+<?php
+
+
+
+
+/**
+ * Check if mobile
+ */
+function isMobile() {
+    return preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo|fone|hiptop|mini|mobi|palm|phone|pie|tablet|up\.browser|up\.link|webos|wos)/i", $_SERVER["HTTP_USER_AGENT"]);
+}
+
+function custom_module_form_privatemsg_new_alter(&$form, &$form_state) {
+	$form['body']['#format'] = 'plain_text';
+	if ($node = menu_get_object()) {
+		// Get the nid
+		$nid = $node->nid;
+		$entity_node = node_load($nid);
+		if ($entity_node) {
+			$form['field_node_referenced'][LANGUAGE_NONE][0]['target_id']['#default_value'] = "$entity_node->title ($entity_node->nid)";
+			$form['field_node_referenced'][LANGUAGE_NONE][0]['target_id']['#attributes'] = array('readonly' => 'readonly');
+		}
+	}
+	else {
+		unset($form['field_node_referenced']);
+	}
+	// Check if a default value is configured for the to field.
+ 	if (!empty($form['recipient']['#default_value'])) {
+		$form['recipient']['#attributes'] = array('readonly' => 'readonly');
+	}
+}
+
+function custom_module_element_info_alter(array &$types) {
+	if (isset($types['password_confirm'])) {
+		$types['password_confirm']['#process'][] = '_custom_module_change_title';
+	}
+	/*if (isset($types['geofield_proximity']['#process'])) {
+		$types['geofield_proximity']['#process'][] = 'custom_module_proximity_element_process';
+	}*/
+	
+}
+
+function _custom_module_change_title(&$element) {
+	$element['pass1']['#title'] = t('Enter New Password');
+	$element['pass2']['#title'] = t('Confirm New Password');
+	return $element;
+}
+
+/*
+function custom_module_node_insert($node) {
+
+	if(isset($node->field_old_url_for_redirect))
+	{
+		// Use Database API to retrieve current redirect sources.
+		$query = db_select('redirect', 'r');
+		$query->fields('r', array('source'));
+		$redirect_sources = $query->execute()->fetchCol();
+
+		// The old path
+		$url = $node->field_old_url_for_redirect['und'][0]['value'];
+
+		// Check node id exists and there is no current redirect set for it
+		if (isset($node->nid) && (!in_array($url, $redirect_sources))){
+		$redirect = new stdClass();
+
+		module_invoke(
+			'redirect',
+			'object_prepare',
+			$redirect,
+			array(
+				'source' => $url,
+				'source_options' => array(),
+				'redirect' => 'node/' . $node->nid,
+				'redirect_options' => array(),
+				'language' => LANGUAGE_NONE,
+			)
+		);
+
+		module_invoke('redirect', 'save', $redirect);
+		}
+	}
+}
+*/
+
+
+/**                                                                           
+ * Implements hook_form_alter().                                              
+ */                                                                          
+function custom_module_form_alter(&$form, &$form_state, $form_id) {
+	/*if ($form_id == 'event_package_node_form'){
+		$form['field_type_of_event']['und']['#options'] = array (
+			'Social Events' => array(
+			  1 => 'Bachelorette Parties',z
+		      2 => 'Reunions',
+		      3 => 'Romantic Getaway',
+		      4 => 'Sweet Sixteen',
+		      5 => 'Birthdays',
+		      6 => 'Debuts',
+		      7 => 'Yacht Events',
+		    ),
+		    'Corporate Events' => array(
+		      8 => 'Corporate Yacht Events',
+		      9 => 'Christmas Parties',
+		      10 => 'Corporate Parties',
+		    ),
+		    'Weddings' => array(
+			  11 => 'Wedding Anniversaries',
+		      12 => 'Prenup Photo shoot',
+		      13 => 'Proposals',
+		      14 => 'Wedding Celebrations',
+		    ),
+		);
+	}
+	*/
+	switch ($form_id) {
+    	case 'user_login':
+    	 	if(arg(0) == 'user') {
+	    	 	$form['name']['#title'] = array('Email address');
+     		}
+    	break;
+    	/* case 'user_register_form':
+    		$form['account']['name']['#title'] = array('Fullname');
+    	break; */
+    	case 'user_profile_form':
+    		$form['account']['name']['#description'] = 'Your Fullname.';
+    		$form['account']['mail']['#description'] = 'Your Email Address.';
+    		$form['account']['current_pass']['#description'] = 'Enter your current password to change the E-mail address or Password. Request new password.';
+    	break;
+
+    	case 'country_brand_node_form':
+    		$node = $form_state['node'];
+	    	/*
+				Check if node is new | if it's node/add
+	    	*/
+	    	if (!isset($node->nid) || isset($node->is_new)) {
+			    if(empty($form['title']['#value'])){
+	    		 	$form['title']['#value'] = 'Brand Title Connected';
+	    		}
+			}
+			/*
+				It is a node edit
+	    	*/
+			else {
+			    $form['field_country']['#disabled'] = 'disabled';
+			}
+		break;
+
+		case 'listings_node_form':
+
+    		$node = $form_state['node'];
+	    	/*
+				Check if node is new | if it's node/add
+	    	*/
+	    	if (!isset($node->nid) || isset($node->is_new)) {
+
+	    		if(isset($_GET['tlid']) && isset($_GET['mcid'])) {
+					$main_category_node = node_load($_GET['mcid']);
+					$type_listings = $_GET['tlid'];
+					$field_tl = field_info_field('field_category_tab');
+					$tl_allowed_values = list_allowed_values($field_tl);
+					$tl_verify = 0;
+					foreach($tl_allowed_values as $key => $value){
+						if($type_listings == $key){
+							$tl_verify = 1;
+						}
+					}
+				}
+				
+	    		if((!empty($main_category_node)) && ($tl_verify == 1)) {
+	    			$form['field_global_professional']['und']['#default_value'] = $_GET['pid'];
+				    $form['field_category_tab']['und']['#default_value'][0] = $type_listings;
+		    		//$form['field_parent_service'][LANGUAGE_NONE][0]['target_id']['#default_value'] = "$main_category_node->title ($main_category_node->nid)";
+		    		$form['field_pro_parent_category']['und']['#default_value'] = $_GET['mcid'];
+		    	}
+			}
+			
+			/*
+				It is a node edit
+	    	*/
+		break;
+    		
+	}
+	
+	if ($form_id == 'views_exposed_form'){
+		$view = $form_state['view'];
+		if ($view){
+			//Setting placeholder
+			$form['title']['#attributes'] = array('placeholder'=> array(t('Search')));
+			$form['field_max_capacity_value']['#attributes'] = array('placeholder'=> array(t('Number of Guest(s)')));
+			$form['field_seating_capacity_value']['#attributes'] = array('placeholder'=> array(t('Number of Seating Guest(s)')));
+			$form['field_sleepover_capacity_value']['#attributes'] = array('placeholder'=> array(t('Charter Capacity')));
+			$form['field_bedroom_value']['#attributes'] = array('placeholder'=> array(t('Number of Bedroom(s)')));
+			$form['field_land_area_value']['#attributes'] = array('placeholder'=> array(t('Land Area (sqm.)')));
+			$form['field_geofield_distance']['#origin_options']['#attributes'] = array('placeholder'=> array(t('Search for location')), 'size'=> array(30));
+			//Cleaning the filter labels
+			unset($form['#info']['field_max_capacity_value']['label']);
+			//$form['field_service_feature_value']['#attributes']['data-placeholder'] = 'This is used as a placeholder instead.';
+			$form['type']['#attributes']['data-placeholder'] = 'Type of Venue';
+
+			if ($view->name == 'rental' && $view->current_display == 'all_yachts') {
+				$form['field_max_capacity_value']['#attributes'] = array('placeholder'=> array(t('Event Capacity')));	
+			}
+		}
+
+		if ($view->name == 'search' && $view->current_display == 'search_page') {
+			$form['title']['#attributes'] = array('placeholder'=> array(t('Search LXV')));
+			$form['combine']['#attributes'] = array('placeholder'=> array(t('Enter Destination')));
+		}
+
+		if ($view->name == 'rental' && $view->current_display == 'yacht_country') {
+			$form['field_max_capacity_value']['#attributes'] = array('placeholder'=> array(t('Day Tour Capacity')));
+		}
+
+		if ($view->name == 'view_block' && $view->current_display == 'jump_nav') {
+			$form['title']['#attributes'] = array('placeholder'=> array(t('LOCATION')));
+		}
+
+		if ($view->name == 'view_block' && $view->current_display == 'country_jump_nav') {
+			$form['title']['#attributes'] = array('placeholder'=> array(t('LOCATION')));
+		}
+	}
+}
+
+/**
+ * Implements hook_theme(). FOR INLINE ENTITY FORMS
+ */
+function custom_module_theme($existing, $type, $theme, $path) {
+	return array(
+		'block_admin_configure' => array(
+		  'arguments' => array(
+			  'form' => NULL,
+		  ),
+		  'template' => 'block-admin-configure',
+		  'path' => drupal_get_path('theme', 'rhythm') . '/rhythm_sub/templates/block',
+		  'render element' => 'form',
+		),
+		'hybridauth_additional_info_form' => array(
+		  'arguments' => array(
+			  'form' => NULL,
+		  ),
+		  'template' => 'hybridauth-additional-info-form',
+		  'path' => drupal_get_path('theme', 'rhythm') . '/rhythm_sub/templates/user',
+		  'render element' => 'form',
+		),
+		'change_pwd_page_form' => array(
+		  'arguments' => array(
+			  'form' => NULL,
+		  ),
+		  'template' => 'change-pwd-page-form',
+		  'path' => drupal_get_path('theme', 'rhythm') . '/rhythm_sub/templates/user',
+		  'render element' => 'form',
+		),
+		'field_ui_field_edit_form' => array(
+		  'arguments' => array(
+			  'form' => NULL,
+		  ),
+		  'template' => 'field_ui_field_edit_form',
+		  'path' => drupal_get_path('theme', 'rhythm') . '/rhythm_sub/templates/form field',
+		  'render element' => 'form',
+		)
+	);
+}
+
+
+
+/*
+ * Alter geofield views exposed form, remove distance and unit
+
+function custom_module_proximity_element_process($element, &$form_state, $form) {
+	$element['distance']['#access'] = FALSE;
+	$element['unit']['#access'] = FALSE;
+	unset($element['origin']['#prefix']);
+	return $element;
+}
+*/
+
+
+
+/**
+ * @file
+ * A plugin for transforming data in rules.
+ *
+
+/**
+ * Implements hook_rules_action_info().
+ */
+function custom_module_rules_action_info() {
+  $return = array(
+    'pathtonid' => array(
+      'label' => t('Convert path to nid'),
+      'parameter' => array(
+        'input_text' => array(
+          'type' => 'text',
+          'label' => t('Input text'),
+        ),
+      ),
+      'provides' => array(
+        'pathtonid' => array(
+          'type' => 'integer',
+          'label' => t('Node ID'),
+        ),
+      ),
+      'group' => t('Data Transforms'),
+      'base' => 'custom_module_action_pathtonid',
+    ),
+  );
+  return $return;
+}
+
+/**
+ * Action: Add variable.
+ * Gets nid from path alias.
+ */
+function custom_module_action_pathtonid($input_text) {
+  $path = drupal_get_normal_path($input_text);
+  $parts = explode('/', $path);
+  // nodes will always have 2 parts in url
+  if (count($parts) == 2){
+    if($parts[0] == 'node' && is_numeric($parts[1])){
+      $input_text = $parts[1];
+    }
+  }
+  return array('pathtonid' => $input_text);
+}
+
+/**
+ * Implements hook_menu_link_alter().
+ 
+function custom_module_menu_link_alter(&$link) {
+  if ($link['link_title'] == 'My Dealer Page') {
+    $link['options']['alter'] = TRUE;
+  }
+  if ($link['link_title'] == 'Edit My Dealer Page') {
+    $link['options']['alter'] = TRUE;
+  }
+}
+
+function custom_module_translated_menu_link_alter(&$link) {
+	global $user;
+	global $base_url; 
+	$prof_dealer = array_intersect(array('professional dealer', 'gold dealer', 'diamond dealer'), array_values($user->roles));
+	if(!empty($prof_dealer) ? TRUE : FALSE) {
+		$dealer_query = new EntityFieldQuery;
+		$result = $dealer_query->entityCondition('entity_type', 'node')
+								->entityCondition('bundle', 'professional_dealer')
+								->propertyCondition('uid', $user->uid)
+								->propertyCondition('status', 1)
+								->range(0, 1)
+								->execute();
+		if (!empty($result ['node'])) {
+			$nid = reset($result['node'])->nid;
+			$dealer_alias = drupal_get_path_alias('node/' . $nid);
+		}
+		if ($link['link_title'] == 'My Dealer Page') {
+		    $link['href'] = $dealer_alias;
+		}
+		if ($link['link_title'] == 'Edit My Dealer Page') {
+		    $link['href'] = 'node/' . $nid . '/edit';
+		}
+	}
+
+}
+*/
+?>

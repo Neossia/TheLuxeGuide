@@ -1,0 +1,73 @@
+<?php
+
+/**
+ * @file
+ * An module to integrate SendInBlue with Drupal mail system.
+ *
+ * PHP version 7
+ *
+ * LICENSE: This source file is subject to version 3.01 of the PHP license
+ * that is available through the world-wide-web at the following URI:
+ * http://www.php.net/license/3_01.txt.  If you did not receive a copy of
+ * the PHP License and are unable to obtain it through the web, please
+ * send a note to license@php.net so we can mail you a copy immediately.
+ *
+ * @category Mail
+ * @package Mail
+ * @author Dany Keyrouz <dany@ebizproduction.com>
+ * @author Bluedrop <info@bluedrop.fr>
+ * @copyright 2018-2019 Bluedrop
+ * @link https://www.drupal.org/project/sib_ms
+ */
+
+/**
+ * Implements hook_help().
+ */
+function sib_ms_help($path, array $arg) {
+  switch ($path) {
+    case 'admin/help#sib_ms':
+      $output = '
+      <p>
+        <h2>INTRODUCTION</h2>
+        This module integrates SendinBlue email delivery service in the Drupal
+        mail system.
+      </p>
+      <p>
+        <h2>REQUIREMENTS</h2>
+        <ul>
+          This module requires the following modules:
+          <li>
+            SendinBlue: <a href="https://www.drupal.org/project/sendinblue"
+            target="_blank">https://www.drupal.org/project/sendinblue</a>
+          </li>
+          <li>
+            HTML Mail: <a href="https://www.drupal.org/project/htmlmail"
+            target="_blank">https://www.drupal.org/project/htmlmail</a>
+          </li>
+        </ul>
+      </p>
+      <p>
+        <h2>INSTALLATION</h2>
+        <ul>
+          <li>
+            Go to <a href="/admin/modules" target="_blank">Administer -> Modules
+            </a> and enable the module.
+          </li>
+          <li>
+            <ul>
+              Go to <a href="/admin/config/system/mailsystem" target="_blank">
+              Configuration -> Mail System</a>:
+              <li>
+                Chose SibMs as Site-wide default.
+              </li>
+              <li>
+                Chose SibMs as Site-wide default.
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </p>';
+
+      return $output;
+  }
+}

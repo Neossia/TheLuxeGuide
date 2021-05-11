@@ -1,0 +1,96 @@
+/* STANDARD CHOSEN CSS ***********************************************************************************************************************/
+
+.chosen-container {
+    border-radius: 2px !important;
+    line-height: 1.42857143;
+    color: #555;
+    background-color: #fff;
+    border: 1px solid #dfdfdf !important;
+    width: 100% !important;
+}
+
+.chosen-container.form-control {
+    height: auto;
+    /* height: 37px; */
+    padding: 0;
+    width: 100% !important;
+    box-shadow: none;
+}
+
+.chosen-container.error .chosen-choices, .chosen-container.error .chosen-single {
+    color: #FFF;
+}
+
+/* END OF STANDARD CHOSEN CSS ****************************************************************************************************************/
+
+/* SINGLE CONTAINER CSS **********************************************************************************************************************/
+
+.chosen-container-single .chosen-single {
+    height: auto;
+    font-size: 12px;
+    color: #777;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    line-height: 1.5;
+    padding: 8px 12px;
+}
+
+.chosen-container-active.chosen-with-drop .chosen-single {
+    border: none;
+    background-image: none;
+    box-shadow: none;
+}
+
+.chosen-container-active.chosen-with-drop .chosen-single div b {
+    background-position: -18px 8px;
+}
+
+.chosen-container-single .chosen-single div b {
+    background-position: 0px 8px;
+}
+
+
+.chosen-container .chosen-results {
+    font-size: 12px;
+    color: #777;
+}
+
+.chosen-container .chosen-drop {
+    border: none;
+}
+
+.chosen-container .chosen-results li.highlighted {
+    background: rgba(34,34,34, .9);
+    border-radius: 2px;
+}
+
+/* END OF SINGLE CONTAINER CSS ***************************************************************************************************************/
+
+/* MULTIPLE CONTAINER CSS ********************************************************************************************************************/
+
+.chosen-container-multi .chosen-choices{
+    background-image: none;
+    border: none;
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 8px 12px;
+}
+
+.chosen-container-multi .chosen-choices .search-field {
+    height: auto !important;
+    width: auto !important;
+}
+
+.chosen-container-multi .chosen-results {
+    margin: 0 4px 4px 0;
+    padding: 0 0 0 4px;
+}
+
+.chosen-container-multi .chosen-choices li.search-choice {
+    margin: 1px 5px 1px 0;
+    line-height: 11px;
+}
+
+/* END OF MULTIPLE CONTAINER CSS *************************************************************************************************************/

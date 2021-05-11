@@ -1,0 +1,2167 @@
+<?php
+
+/**
+ * Implementation of hook_menu().
+ */
+function rhythm_shortcodes_menu() {
+  variable_set('nd_visualshortcodes_extra_css', drupal_get_path('module', 'rhythm_shortcodes') . '/css/rhythm_shortcodes.css');
+  $items = array();
+  $items['admin/ajax/rhythm_shortcodes/icons_autocomplete'] = array(
+    'page callback' => 'rhythm_shortcodes_ajax_icons_autocomplete',
+    'access arguments' => array('administer nd visualshortcodes'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+function rhythm_shortcodes_ajax_icons_autocomplete($str) {
+  $icons = array('icon-mobile', 'icon-laptop', 'icon-desktop', 'icon-tablet', 'icon-phone', 'icon-document', 'icon-documents', 'icon-search', 'icon-clipboard', 'icon-newspaper', 'icon-notebook', 'icon-book-open', 'icon-browser', 'icon-calendar', 'icon-presentation', 'icon-picture', 'icon-pictures', 'icon-video', 'icon-camera', 'icon-printer', 'icon-toolbox', 'icon-briefcase', 'icon-wallet', 'icon-gift', 'icon-bargraph', 'icon-grid', 'icon-expand', 'icon-focus', 'icon-edit', 'icon-adjustments', 'icon-ribbon', 'icon-hourglass', 'icon-lock', 'icon-megaphone', 'icon-shield', 'icon-trophy', 'icon-flag', 'icon-map', 'icon-puzzle', 'icon-basket', 'icon-envelope', 'icon-streetsign', 'icon-telescope', 'icon-gears', 'icon-key', 'icon-paperclip', 'icon-attachment', 'icon-pricetags', 'icon-lightbulb', 'icon-layers', 'icon-pencil', 'icon-tools', 'icon-tools-2', 'icon-scissors', 'icon-paintbrush', 'icon-magnifying-glass', 'icon-circle-compass', 'icon-linegraph', 'icon-mic', 'icon-strategy', 'icon-beaker', 'icon-caution', 'icon-recycle', 'icon-anchor', 'icon-profile-male', 'icon-profile-female', 'icon-bike', 'icon-wine', 'icon-hotairballoon', 'icon-globe', 'icon-genius', 'icon-map-pin', 'icon-dial', 'icon-chat', 'icon-heart', 'icon-cloud', 'icon-upload', 'icon-download', 'icon-target', 'icon-hazardous', 'icon-piechart', 'icon-speedometer', 'icon-global', 'icon-compass', 'icon-lifesaver', 'icon-clock', 'icon-aperture', 'icon-quote', 'icon-scope', 'icon-alarmclock', 'icon-refresh', 'icon-happy', 'icon-sad', 'icon-facebook', 'icon-twitter', 'icon-googleplus', 'icon-rss', 'icon-tumblr', 'icon-linkedin', 'icon-dribbble');
+  $font_awesome = nd_visualshortcodes_fontawesome_icons();
+  $icons = array_merge($icons, $font_awesome);
+  $matches = array();
+  foreach ($icons as $icon) {
+    if(stripos($icon, $str) !== FALSE) {
+      $matches[$icon] = $icon;
+    }
+  }
+  drupal_json_output($matches);
+}
+
+/**
+ * Return array with region ID and his HTML class name
+*/
+function rhythm_shortcodes_theme() {
+   return array(
+    'rhythm_shortcodes_shortcode_list_settings' => array(
+      'render element' => 'form'
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_shortcode_info() .
+ * Using the same formatting as hook_filter_info()`
+ */
+function rhythm_shortcodes_shortcode_info() {
+  $shortcodes['nd_header'] = array(
+    'title' => t('Header'),
+    'process callback' => 'rhythm_shortcodes_shortcode_header',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_header_settings',
+    'icon' => 'fa fa-header',
+    'description_field' => 'title',
+  );
+  $shortcodes['nd_menu'] = array(
+    'title' => t('Menu'),
+    'process callback' => 'rhythm_shortcodes_shortcode_menu',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_menu_settings',
+    'icon' => 'fa fa-bars',
+  );
+  $shortcodes['nd_container'] = array(
+    'title' => t('Container 1170px'),
+    'description' => t('Container for content.'),
+    'process callback' => 'rhythm_shortcodes_shortcode_container',
+    'icon' => 'fa fa-hdd-o',
+  );
+  $shortcodes['nd_div'] = array(
+    'title' => t('DIV Container'),
+    'process callback' => 'rhythm_shortcodes_shortcode_div',
+    'icon' => 'fa fa-folder-o',
+  );
+  $shortcodes['row'] = array(
+    'title' => t('Row for columns'),
+    'description' => t('Container for cols.'),
+    'process callback' => 'rhythm_shortcodes_shortcode_row',
+    'process backend callback' => 'nd_visualshortcodes_backend_row',
+    'icon' => 'fa fa-th-large',
+    'child shortcode' => 'col'
+  );
+  $shortcodes['col'] = array(
+    'title' => t('Column'),
+    'description' => t('Column with size settings'),
+    'process callback' => 'rhythm_shortcodes_shortcode_col',
+    'process backend callback' => 'nd_visualshortcodes_backend_col',
+    'process settings callback' => 'nd_visualshortcodes_shortcode_col_settings',
+    'icon' => 'fa fa-columns'
+  );
+  $shortcodes['nd_view'] = array(
+    'title' => t('View'),
+    'description' => t('Embed content - rendered View.'),
+    'process callback' => 'rhythm_shortcodes_shortcode_view',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_view_settings',
+    'icon' => 'fa fa-sun-o',
+    'description_callback' => 'rhythm_shortcodes_shortcode_view_description',
+  );
+  $shortcodes['nd_block'] = array(
+    'title' => t('Block'),
+    'description' => t('Render block.'),
+    'process callback' => 'rhythm_shortcodes_shortcode_block',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_block_settings',
+    'icon' => 'fa fa-file',
+    'description_callback' => 'rhythm_shortcodes_shortcode_block_description',
+  );
+  $shortcodes['nd_node'] = array(
+    'title' => t('Node'),
+    'description' => t('Render node'),
+    'process callback' => 'rhythm_shortcodes_shortcode_node',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_node_settings',
+    'icon' => 'fa fa-file-o',
+    'description_callback' => 'rhythm_shortcodes_shortcode_node_description',
+  );
+  $shortcodes['html'] = array(
+    'title' => t('HTML'),
+    'description' => t('HTML code'),
+    'process callback' => 'rhythm_shortcodes_shortcode_html',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'nd_visualshortcodes_shortcode_html_settings',
+    'icon' => 'fa fa-code',
+    'description_field' => 'text',
+    'backend preview' => TRUE,
+  );
+  $shortcodes['nd_progress'] = array(
+    'title' => t('Progress Bar'),
+    'process callback' => 'rhythm_shortcodes_shortcode_progress',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_progress_settings',
+    'icon' => 'fa fa-tasks',
+    'description_field' => 'title',
+  );
+  $shortcodes['nd_button'] = array(
+    'title' => t('Button link'),
+    'process callback' => 'rhythm_shortcodes_shortcode_button',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_button_settings',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-bold',
+    'description_field' => 'text',
+    'backend preview' => TRUE,
+  );
+  $shortcodes['nd_bg'] = array(
+    'title' => t('Background'),
+    'description' => t('Background for content.'),
+    'process callback' => 'rhythm_shortcodes_shortcode_bg',
+    'icon' => 'fa fa-file-image-o',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_bg_settings',
+  );
+  $shortcodes['nd_feature'] = array(
+    'title' => t('Feature'),
+    'description' => t('Feature description'),
+    'process callback' => 'rhythm_shortcodes_shortcode_feature',
+    'icon' => 'fa fa-gears',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_feature_settings',
+  );
+  $shortcodes['nd_text_n_tooltip'] = array(
+    'title' => t('Text & Tooltip'),
+    'description' => t('Some text with tooltip'),
+    'process callback' => 'rhythm_shortcodes_shortcode_text_n_tooltip',
+    'icon' => 'fa fa-file-text-o',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_text_n_tooltip_settings',
+  );
+  $shortcodes['nd_icon'] = array(
+    'title' => t('Icon'),
+    'description' => t('Icon with its name'),
+    'process callback' => 'rhythm_shortcodes_shortcode_icon',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-image',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_icon_settings',
+    'backend preview' => TRUE,
+  );
+  $shortcodes['nd_message'] = array(
+    'title' => t('Message'),
+    'description' => t('Messages'),
+    'process callback' => 'rhythm_shortcodes_shortcode_message',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-exclamation',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_message_settings',
+  );
+  $shortcodes['nd_slider'] = array(
+    'title' => t('Slider container'),
+    'description' => t('Slider for any content'),
+    'process callback' => 'rhythm_shortcodes_shortcode_slider',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_slider_settings',
+    'icon' => 'fa fa-arrows-h',
+    'child shortcode' => 'nd_slider_item',
+    'description_field' => 'type',
+  );
+  $shortcodes['nd_slider_item'] = array(
+    'title' => t('Slider'),
+    'description' => t('Slider item'),
+    'process callback' => 'rhythm_shortcodes_shortcode_slider_item',
+    'icon' => 'fa fa-long-arrow-right'
+  );
+  $shortcodes['nd_image'] = array(
+    'title' => t('Image'),
+    'process callback' => 'rhythm_shortcodes_shortcode_image',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_image_settings',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-file-image-o',
+    'backend preview' => TRUE,
+  );
+  $shortcodes['nd_tabs'] = array(
+    'title' => t('Tabs container'),
+    'process callback' => 'rhythm_shortcodes_shortcode_tabs',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_tabs_settings',
+    'icon' => 'fa fa-folder-open',
+    'child shortcode' => 'nd_tab',
+    'description_field' => 'type',
+  );
+  $shortcodes['nd_tab'] = array(
+    'title' => t('Tab'),
+    'process callback' => 'rhythm_shortcodes_shortcode_tab',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_tab_settings',
+    'icon' => 'fa fa-folder',
+    'description_field' => 'title',
+  );
+  $shortcodes['nd_quote'] = array(
+    'title' => t('Quote'),
+    'process callback' => 'rhythm_shortcodes_shortcode_quote',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_quote_settings',
+    'icon' => 'fa fa-quote-right',
+    'child shortcode' => 'html',
+  );
+  $shortcodes['nd_video'] = array(
+    'title' => t('Video'),
+    'process callback' => 'rhythm_shortcodes_shortcode_video',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_video_settings',
+    'icon' => 'fa fa-video-camera',
+    'description_field' => 'title',
+  );
+  $shortcodes['nd_pricing_table'] = array(
+    'title' => t('Pricing table'),
+    'process callback' => 'rhythm_shortcodes_shortcode_pricing_table',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_pricing_table_settings',
+    'icon' => 'fa fa-dollar',
+    'child shortcode' => 'pricing_item',
+    'description_field' => 'type',
+  );
+  $shortcodes['nd_pricing_item'] = array(
+    'title' => t('Pricing item'),
+    'process callback' => 'rhythm_shortcodes_shortcode_pricing_item',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_pricing_item_settings',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-dollar',
+    'description_field' => 'title',
+  );
+  $shortcodes['nd_title'] = array(
+    'title' => t('Title'),
+    'process callback' => 'rhythm_shortcodes_shortcode_title',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_title_settings',
+    'icon' => 'fa fa-h-square',
+    'description_field' => 'title',
+    'backend preview' => TRUE,
+  );
+  $shortcodes['nd_hr'] = array(
+    'title' => t('HR Border Line'),
+    'process callback' => 'rhythm_shortcodes_shortcode_hr',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-ellipsis-h',
+  );
+  $shortcodes['nd_accordions'] = array(
+    'title' => t('Accordion container'),
+    'process callback' => 'rhythm_shortcodes_shortcode_accordions',
+    'child shortcode' => 'nd_accordion',
+    'icon' => 'fa fa-bars'
+  );
+  $shortcodes['nd_accordion'] = array(
+    'title' => t('Accordion item'),
+    'process callback' => 'rhythm_shortcodes_shortcode_accordion',
+    'icon' => 'fa fa-minus',
+    'description_field' => 'title',
+  );
+  $shortcodes['nd_gmap'] = array(
+    'title' => t('Google Map'),
+    'description' => t('Google Map'),
+    'process callback' => 'rhythm_shortcodes_shortcode_gmap',
+    'process settings callback' => 'rhythm_shortcodes_shortcode_gmap_settings',
+    'icon' => 'fa fa-map-marker'
+  );
+  $shortcodes['nd_counter'] = array(
+    'title' => t('Counter'),
+    'process callback' => 'rhythm_shortcodes_shortcode_counter',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-sort-numeric-asc',
+  );
+  $shortcodes['nd_text_rotator'] = array(
+    'title' => t('Text Rotator'),
+    'process callback' => 'rhythm_shortcodes_shortcode_text_rotator',
+    'process backend callback' => 'nd_visualshortcodes_backend_nochilds',
+    'icon' => 'fa fa-sort-alpha-asc',
+  );
+  return $shortcodes;
+}
+
+function rhythm_shortcodes_shortcode_header($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : '';
+  $attrs['class'] .= isset($attrs['size']) ? ' ' . $attrs['size'] : '';
+  if (isset($attrs['size']) && $attrs['size'] != 'small-section pt-30 pb-30') {
+    $description = isset($attrs['description']) ? $attrs['description'] : '';
+    $light_bg = array('bg-gray-lighter', 'bg-gray', 'bg-light-alfa-30');
+    $description = $description ? ('<div class="hs-line-4 font-alt' . (in_array($attrs['type'], $light_bg) ? ' black' : '') . '">' . $description . '</div>') : '';
+  }  
+  $title = isset($attrs['title']) ? $attrs['title'] : drupal_get_title();
+  $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+  $filename = isset($file->uri) ? file_create_url($file->uri) : '';
+  $attrs['class'] .= isset ($attrs['type']) ? ' ' . $attrs['type'] : '';
+  $attrs['data-background'] = $filename ? $filename : '';
+  $attrs['style'] = $filename ? 'background-image: url("' . $filename . '");' : '';
+  $attrs['style'] .= isset($attrs['size']) && $attrs['size'] == 'home-section parallax-2 fixed-height-small' ? ' background-position: 50% 0px;' : '';
+  if (isset($attrs['size'])  && $attrs['size'] == 'home-section parallax-2 fixed-height-small') {
+    $container = '<div class="js-height-parent container" style="height: 600px;"><div class="home-content"><div class="home-text header-align-left">';
+    $container_end ='</div></div>';
+  }
+  else{
+    $container = '<div class="relative container align-left">';
+    $container_end ='';
+  }
+  $header_type = isset($attrs['header_type']) ? $attrs['header_type'] : '';
+  switch ($header_type) {
+    case 'centered':
+      $header = '
+        <div class="relative container align-center">
+          <div class="mod-breadcrumbs font-alt align-center">
+            ' . theme('breadcrumb', array('breadcrumb' => drupal_get_breadcrumb(), 'align' => 'align-center')) . '
+          </div>
+          <h1 class="hs-line-11 font-alt mb-0">' . $title . '</h1>' .
+          (isset($description) ? $description : '') . '
+        </div>';
+      break;
+    default:
+      $header = 
+      '<div class="row">
+        <div class="col-md-8">
+          <h1 class="hs-line-11 font-alt mb-20 mb-xs-0">' . $title . '</h1>' .
+          (isset($description) ? $description : '') .
+        '</div>
+        ' . (isset($attrs['breadcrumbs']) && $attrs['breadcrumbs'] ? '
+        <div class="col-md-4 mt-30">
+          <div class="mod-breadcrumbs font-alt align-right">
+            ' . theme('breadcrumb', array('breadcrumb' => drupal_get_breadcrumb(), 'align' => 'align-right')) . '
+          </div>
+        </div>
+        ' : '') . '
+      </div>';
+      break;
+  }
+  $output = '<section ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' .    
+      $container .
+      $header .
+    '</div>' .
+    $container_end .
+  '</section>';
+  return $output;
+}
+
+function rhythm_shortcodes_shortcode_header_settings($attrs, $text) {
+  $size = array('' => t('Default'), 'centered' => t('Centered'));
+  $form['header_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Header Type'),
+    '#options' => $size,
+    '#default_value' => isset($attrs['header_type']) ? $attrs['header_type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>'
+  );
+  $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+  $filename = isset($file->uri) ? $file->uri : '';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename)) : '';
+  $form['fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Background Image'),
+    '#default_value' => isset($attrs['fid']) ? $attrs['fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Image') .'</a><a href = "#" class = "media-remove button">' . t('Remove Image') .'</a>',
+    '#prefix' => '<div class = "row"><div class = "col-sm-8">',
+  );
+  $size = array ('small-section pt-30 pb-30' => t('Small'), 'small-section' => t('Normal'), 'page-section' => t('Large'), 'home-section parallax-2 fixed-height-small' => t('Extra Large'));
+  $form['size'] = array(
+    '#type' => 'select',
+    '#title' => t('Size'),
+    '#options' => $size,
+    '#default_value' => isset($attrs['size']) ? $attrs['size'] : 'small-section',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>'
+  );
+  $types = array('bg-gray-lighter' => t('Gray lighter'), 'bg-gray'=>t('Gray'), 'bg-light-alfa-30' => t('Light A30'), 'bg-dark-lighter' => t('Dark lighter'), 'bg-dark' => t('Dark'), 'bg-dark-alfa-30' => t('Dark A30'), 'bg-dark-alfa-50' => t('Dark A50'), 'bg-dark-alfa-70' => t('Dark A70'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Background Type'),
+    '#options' => $types,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : 'bg-gray-lighter',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['style_height'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Height'),
+    '#default_value' => isset($attrs['style_height']) ? $attrs['style_height'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $form['breadcrumbs'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Breadcrumbs'),
+    '#default_value' => isset($attrs['breadcrumbs']) ? $attrs['breadcrumbs'] : TRUE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>'
+  );
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Override title'),
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  $form['description'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Description'),
+    '#default_value' => isset($attrs['description']) ? $attrs['description'] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_menu($attrs, $text) {
+  $color = isset($attrs['type']) ? $attrs['type'] : theme_get_setting('menu_color');
+  $transparent = isset($attrs['transparent']) ? $attrs['transparent'] : theme_get_setting('menu_transparent');
+  $search = isset($attrs['search']) ? $attrs['search'] : theme_get_setting('menu_search');
+  $cart = isset($attrs['cart']) ? $attrs['cart'] : FALSE;
+  $menu = isset($attrs['menu']) ? $attrs['menu'] : 'main-menu';
+  $language = isset($attrs['language']) ? $attrs['language'] : FALSE;
+  $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+  $logo = isset($file->uri) ? file_create_url($file->uri) : theme_get_setting('logo');
+  $menu_type = isset($attrs['menu_type']) ? $attrs['menu_type'] : '';
+
+  switch ($menu_type) {
+    case 'popup_menu':
+      $output = theme('rhythm_cms_menu_popup', array('menu' => $menu, 'logo' => $logo));
+      break;
+    default:
+      $output = theme('rhythm_cms_menu', array('menu' => $menu, 'logo' => $logo, 'color' => $color, 'transparent' => $transparent, 'search' => $search, 'cart' => $cart, 'language' => $language));
+  }
+
+  $attrs_output = _rhythm_shortcodes_shortcode_attributes($attrs);
+  if ($attrs_output) {
+    $output = '<div ' . $attrs_output . '>' . $output . '</div>';
+  }
+  return $output;
+}
+
+function _rhythm_cart_count() {
+  global $user;
+  $quantity = 0;
+  $order = commerce_cart_order_load($user->uid);
+  if ($order) {
+    $wrapper = entity_metadata_wrapper('commerce_order', $order);
+    $line_items = $wrapper->commerce_line_items;
+    $quantity = commerce_line_items_quantity($line_items, commerce_product_line_item_types());
+  }
+  return $quantity;
+}
+
+function rhythm_shortcodes_shortcode_menu_settings($attrs, $text) {
+  $menu_type = array('' => t('Default'), 'popup_menu' => t('Popup Menu'));
+  $form['menu_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Menu Type'),
+    '#default_value' => isset($attrs['menu_type']) ? $attrs['menu_type'] : '',
+    '#options' => $menu_type,
+    '#attributes' => array('class' => array('form-control menu-select')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+    '#suffix' => '</div>'
+  );
+  $menus = menu_get_menus();
+  $form['menu'] = array(
+    '#type' => 'select',
+    '#title' => t('Menu'),
+    '#default_value' => isset($attrs['menu']) ? $attrs['menu'] : '',
+    '#options' => $menus,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "col-sm-4">',
+    '#suffix' => '</div></div>'
+  );
+  $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+  $filename = isset($file->uri) ? $file->uri : '';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename)) : '';
+  $form['fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Logo'),
+    '#default_value' => isset($attrs['fid']) ? $attrs['fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Image') .'</a><a href = "#" class = "media-remove button">' . t('Remove Image') .'</a>',
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>'
+  );
+  $states =  array(
+    'visible' => array(
+      '.menu-select' => array('!value' => 'popup_menu'),
+    ),
+  );
+  $types = array('white' => t('White'), 'dark' => t('Dark'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Background Type'),
+    '#options' => $types,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : 'white',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+    '#states' => $states,
+  );
+  $form['transparent'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Transparent'),
+    '#default_value' => isset($attrs['transparent']) ? $attrs['transparent'] : TRUE,
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+    '#states' => $states,
+  );
+  $form['search'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Search Box'),
+    '#default_value' => isset($attrs['search']) ? $attrs['search'] : TRUE,
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+    '#states' => $states,
+  );
+  $form['cart'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Cart'),
+    '#default_value' => isset($attrs['cart']) ? $attrs['cart'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#states' => $states,
+  );
+  $form['language'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Language Swticher'),
+    '#default_value' => isset($attrs['language']) ? $attrs['language'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+    '#states' => $states,
+  );
+  return $form;
+}
+
+function _rhythm_shortcodes_shortcode_attributes($attrs) {
+  if(empty($attrs)) {
+    return '';
+  }
+  $allowed_attributes = array('class' => 'class', 'href' => 'href', 'id' => 'id', 'animation' => 'class', 'animation_delay' => 'data-wow-delay', 'data-background' => 'data-background', 'data-uri' => 'data-uri', 'style' => 'style', 'extra_style' => 'style', 'align' => 'align', 'target' => 'target');
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : ''; 
+  if (isset($attrs['link']) && $attrs['link'] == $_GET['q']) {
+    $attrs['class'] .= ' active'; 
+  }
+  if (isset($attrs['animation']) && $attrs['animation']) {
+    $attrs['class'] .= ' wow'; 
+  }
+  if (isset($attrs['animation_delay']) && $attrs['animation_delay']) {
+    $attrs['animation_delay'] = number_format($attrs['animation_delay'] / 1000, 2) . 's';
+  }
+
+  $attrs['class'] .= isset($attrs['extra_classes']) ? ' ' . $attrs['extra_classes'] : '';
+  $output = '';
+  $attrs_array = array('class' => '');
+  foreach($attrs as $name => $value) {
+    $value = trim($value);
+    if(strpos($name, 'style_') === 0) {
+      $value_style = str_replace(array('style_', '_'), array('', '-'), $name);
+      if(strpos($value_style, '-radius') !== FALSE) {
+        $value = strpos($value, '%') !== FALSE ? $value : (int)$value . 'px;';
+        $value = '-webkit-' . $value_style. ': ' . $value . '; -moz-' . $value_style. ': ' . $value . '; ' . $value_style. ': ' . $value . '';
+      }
+      elseif(strpos($name, 'margin') !== FALSE || strpos($name, 'padding') !== FALSE || strpos($name, 'width') !== FALSE || strpos($name, 'height') !== FALSE) {
+        $value = strpos($value, '%') !== FALSE ? $value : (int)$value . 'px;';
+        $value =  $value_style . ': ' . $value;
+      }
+      elseif(strpos($name, 'color') !== FALSE) {
+        $value =  $value_style . ': #' . trim($value, '#') . ';';
+      }
+      elseif(strpos($value_style, 'image') !== FALSE) {
+        $file = file_load($value);
+        $filename = isset($file->uri) ? file_create_url($file->uri) : '';
+        $value =  $value_style . ': url("' . $filename . '");';
+      }
+      else {
+        $value = $value_style . ': ' . $value . ';';
+      }
+      $name = 'style';
+    }
+    if(isset($allowed_attributes[$name])) {
+      $name = $allowed_attributes[$name];
+      if ($value !== '') {
+        $attrs_array[$name] = (isset($attrs_array[$name]) ? $attrs_array[$name] . ' ' : '') . $value;
+      }
+    }
+    elseif(strpos($name, 'data-') === 0) {
+      if ($value !== '') {
+        $attrs_array[$name] = (isset($attrs_array[$name]) ? $attrs_array[$name] . ' ' : '') . $value;
+      }
+    }
+  }
+  if(isset($attrs['style_background_color']) && strtolower(trim($attrs['style_background_color'], '#')) == '000000') {
+    $attrs_array['class'] .= ' text-white';
+  }
+  if(isset($attrs['style_background_color']) && strtolower(trim($attrs['style_background_color'], '#')) == 'ffffff') {
+    $attrs_array['class'] .= ' text-black';
+  }
+  if(isset($attrs['text_align']) && $attrs['text_align']) {
+    $attrs_array['style'] = (isset($attrs_array['style']) ? $attrs_array['style'] : '') . ' text-align:'. $attrs['text_align'] . ';';
+    $attrs_array['class'] .= ' pi-text-center';
+  }
+
+  foreach($attrs_array as $name => $value) {
+    if($value) {
+      $output .= " $name = '$value'";
+    }
+  }
+  return $output;
+}
+
+function rhythm_shortcodes_shortcode_view($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : '';
+  $view = '';
+  if (isset($attrs['admin_url']) && strpos($attrs['admin_url'], 'admin/structure/views/view') !== FALSE) {
+    $view_name = substr($attrs['admin_url'], strpos($attrs['admin_url'], 'view/') + 5);
+    $parts = explode('/', $view_name);
+    $view_name = $parts[0];
+    $view = isset($parts[2]) ? views_embed_view($view_name, $parts[2]) : views_embed_view($view_name);
+  }
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>' . $view . '</div>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_view_settings($attrs, $text) {
+  $views = views_get_all_views();
+  $displays = array();
+  foreach ($views as $view) {
+    foreach($view->display as $display) {
+      if($display->display_title != 'Master') {
+        $displays['admin/structure/views/view/' . $view->name . '/edit/' . $display->id] = check_plain($view->human_name . ': ' . $display->display_title);
+      }
+    }
+  }
+  $form['admin_url'] = array(
+    '#title' => t('View'),
+    '#type' => 'select',
+    '#options' => $displays,
+    '#default_value' => isset($attrs['admin_url']) ? $attrs['admin_url'] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_view_description($attrs, $text) {
+  if (strpos($attrs['admin_url'], 'admin/structure/views/view') !== FALSE) {
+    $form = rhythm_shortcodes_shortcode_view_settings($attrs, $text);
+    $value = l($form['admin_url']['#options'][$attrs['admin_url']], $attrs['admin_url'], array('attributes' => array('target' => '_blank')));
+    return $value;
+  }
+}
+
+function rhythm_shortcodes_shortcode_block($attrs, $text) {
+  if (strpos($attrs['admin_url'], 'admin/structure/block') !== FALSE) {
+    $block_name = substr($attrs['admin_url'], strpos($attrs['admin_url'], '/manage/') + 8);
+    $parts = explode('/', $block_name);
+    $block = _nikadevs_render_block($parts[0], $parts[1]);
+    $block = render($block);
+  }
+  $attrs_output = _rhythm_shortcodes_shortcode_attributes($attrs);
+  $text = $attrs_output ? '<div ' . $attrs_output  . '>' . $block . '</div>' : $block;
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_block_tip($format, $long) {
+  $output = array();
+  $output[] = '<p><strong>Block:</strong><br/>[block admin_url = "admin/structure/block/manage/rhythm_cms/gmap/configure"][/block]</br>';
+  $output[] = '<strong>admin_url</strong> - URL of the block edit page.</p>';
+  return implode(' ', $output);
+}
+
+function rhythm_shortcodes_shortcode_block_settings($attrs, $text) {
+  module_load_include('inc', 'block', 'block.admin');
+  $current_theme = variable_get('theme_default', 'none');
+  $blocks = block_admin_display_prepare_blocks($current_theme);
+  usort($blocks, '_sort_blocks');
+  $options = array();
+  foreach ($blocks as $block) {
+    $options['admin/structure/block/manage/' . $block['module']  .'/' . $block['delta'] . '/configure'] = check_plain($block['info']);
+  }
+  asort($options);
+  $form['admin_url'] = array(
+    '#title' => t('Block'),
+    '#type' => 'select',
+    '#options' => $options,
+    '#default_value' => isset($attrs['admin_url']) ? $attrs['admin_url'] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_block_description($attrs, $text) {
+  if (strpos($attrs['admin_url'], 'admin/structure/block') !== FALSE) {
+    $form = rhythm_shortcodes_shortcode_block_settings($attrs, $text);
+    $value = l($form['admin_url']['#options'][$attrs['admin_url']], $attrs['admin_url'], array('attributes' => array('target' => '_blank')));
+    return $value;
+  }
+}
+
+function rhythm_shortcodes_shortcode_node($attrs, $text) {
+  if (isset($attrs['admin_url']) && strpos($attrs['admin_url'], 'node/') !== FALSE) {
+    $node_name = substr($attrs['admin_url'], strpos($attrs['admin_url'], 'node/') + 5);
+    $parts = explode('/', $node_name);
+    $node = node_load($parts[0]);
+    if(isset($node->nid) && $node->nid) {
+      $node = node_view($node);
+      $output = render($node);
+      $attrs = _rhythm_shortcodes_shortcode_attributes($attrs);
+      $text = $attrs ? '<div ' . $attrs  . '>' . $output . '</div>' : $output;
+      return $text;
+    }
+  }
+}
+
+function rhythm_shortcodes_shortcode_node_tip($format, $long) {
+  $output = array();
+  $output[] = '<p><strong>Node:</strong><br/>[node admin_url = "node/1/edit"][/node]</br>';
+  $output[] = '<strong>admin_url</strong> - URL of the node edit page.</p>';
+  return implode(' ', $output);
+}
+
+function rhythm_shortcodes_shortcode_node_description($attrs, $text) {
+  if (strpos($attrs['admin_url'], 'node/') !== FALSE) {
+    $node_name = substr($attrs['admin_url'], strpos($attrs['admin_url'], 'node/') + 5);
+    $parts = explode('/', $node_name);
+    $nid = $parts[0];
+    if(is_numeric($nid)) {
+      $node = node_load($nid);
+      return l($node->title, 'node/' . $nid . '/edit', array('attributes' => array('target' => '_blank')));
+    }
+  }
+}
+
+function rhythm_shortcodes_shortcode_node_settings($attrs, $text) {
+  $form['admin_url'] = array(
+    '#title' => t('Node Title'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/nd_visualshortcodes/node_autocomplete',
+    '#default_value' => isset($attrs['admin_url']) ? $attrs['admin_url'] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_container($attrs, $text) {
+  $attrs['class'] = 'container ' . (isset($attrs['class']) ? $attrs['class'] : '');
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) .'>' . $text . '</div>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_container_tip($format, $long) {
+  $output = array();
+  $output[] = '<p><strong>Responsive container:</strong><br/>[container]Content[/container]</br>';
+  $output[] = 'Use this for non-full width content.</p>';
+  $output[] = '<p><strong>Responsive columns:</strong><br/>[row]<br/>[col phone = 12 tablet = 12 desktop = 6 wide = 6]Content with date[/col][/row]</br>';
+  $output[] = 'Describe how many rows will take col in different devices: phone, tablet, desktop, wide. From 1 to 12 rows.</p>';
+  return implode(' ', $output);
+}
+
+function rhythm_shortcodes_shortcode_div($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] . ' ' : '';
+  $attrs['class'] .= isset($attrs['vertical_align']) && $attrs['vertical_align'] ? 'home-text ': '';
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) .'>' . $text . '</div>';
+  if(isset($attrs['vertical_align']) && $attrs['vertical_align'] ) {
+    $text = '<div class = "home-content">' . $text . '</div>';
+  }
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_div_settings($attrs, $text) {
+  $form['vertical_align'] = array(
+    '#title' => t('Vertical Align'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['vertical_align']) ? $attrs['vertical_align'] : FALSE,
+  );
+  return $form;
+}
+
+
+function rhythm_shortcodes_shortcode_row($attrs, $text) {
+  $attrs['class'] = 'row ' . (isset($attrs['class']) ? $attrs['class'] : '');
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) .'>' . $text . '</div>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_col($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : '';
+  if(isset($attrs['phone'])) {
+    $attrs['class'] .= ' col-xs-' . $attrs['phone'];
+  }
+  if(isset($attrs['tablet'])) {
+    $attrs['class'] .= ' col-sm-' . $attrs['tablet'];
+  }
+  if(isset($attrs['desktop'])) {
+    $attrs['class'] .= ' col-md-' . $attrs['desktop'];
+  }
+  if(isset($attrs['wide'])) {
+    $attrs['class'] .= ' col-lg-' . $attrs['wide'];
+  }
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . $text . '</div>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_html($attrs, $text) {
+  // Made a little hack for tables which can't be controled because rendered some WYSIWYG editor, and also list styles
+  $text = str_replace(array('<table', '<ul>', '<ol>'), array('<table class = "table table-bordered table-striped"', '<ul class = "list">', '<ol class = "list">'), $text);
+  $attrs_output = _rhythm_shortcodes_shortcode_attributes($attrs);
+  if($attrs_output) {
+    return '<div ' . $attrs_output . '>' . $text . '</div>';
+  }
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_progress($attrs, $text) {
+  $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] : '') . ' progress-bar ';
+  $percent = isset($attrs['percent']) && $attrs['percent'] ? $attrs['percent'] : 0;
+  if(isset($attrs['type']) && $attrs['type'] == t('Thin Line')) { 
+    $output = '<div class="progress tpl-progress">';
+    $output .= '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) . ' aria-valuemax="100" aria-valuemin="0" aria-valuenow="' . $percent . '" role="progressbar" style="width: ' . $percent . '%;">';
+    $output .= $attrs['title'] . ', %<span>' . $percent . '</span>
+    </div>';
+  }
+  else{
+    $output = '<div class="progress tpl-progress-alt">';
+    $output .= '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) . ' aria-valuemax="100" aria-valuemin="0" aria-valuenow="' . $percent . '" role="progressbar" style="width: ' . $percent . '%;">';
+    $output .= $attrs['title'] . ', <span>' . $percent . '%</span>
+    </div>';
+  }  
+  //$icon = isset($attrs['icon']) && $attrs['icon'] ? '<i class="' . $attrs['icon'] . ' pi-icon-left"></i>' : 0; -------------- Èêîíêó âûêëþ÷àåì, ò.ê. å¸ íåò íà ñàéòå ïðèìåðå ------
+  $output .= '</div>';
+  return $output;
+}
+
+function rhythm_shortcodes_shortcode_progress_settings($attrs, $text) {
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['percent'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Percent'),
+    '#default_value' => isset($attrs['percent']) ? $attrs['percent'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  $types = array(t('Wide Line'), t('Thin Line'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => array_combine($types, $types),
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_button($attrs, $text) {
+  if (isset($attrs['invert']) && $attrs['invert']) {
+    $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] : '') . (isset($attrs['button_type']) ? 'btn btn-mod btn-' . $attrs['button_type'] . '-w' : 'btn btn-mod btn-w');
+  }
+  else{
+    $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] : '') . (isset($attrs['button_type']) ? 'btn btn-mod btn-' . $attrs['button_type'] : 'btn btn-mod ');
+  }
+  $attrs['class'] .= isset($attrs['size']) ? ' btn-' . $attrs['size'] : '';
+  $attrs['class'] .= ' btn-' . $attrs['display'];
+  $attrs['link'] = isset($attrs['link']) ? $attrs['link'] : '#';
+  $attrs['href'] = strpos($attrs['link'], '#') === FALSE ? url($attrs['link']) : $attrs['link'];
+  $attrs['target'] = isset($attrs['target']) && $attrs['target'] ? '_blank' : '';
+  $text = isset($attrs['text']) ? $attrs['text']: '';
+  if(isset($attrs['icon']) && $attrs['icon']) {
+    if (isset($attrs['icon_position']) && $attrs['icon_position']) {
+        $text = '<i class="' . $attrs['icon'] . '"></i> ' . $text;
+    }
+    else{
+        $attrs['class'] .= ' btn-icon';
+        $text = '<span><i class="' . $attrs['icon'] . '"></i></span>' . $text;
+    }
+  }
+  $text = '<a ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</a>';
+  $text = (isset($attrs['block']) && $attrs['block'] ? '<div class="mb-10">' . $text . '</div>' : $text);
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_button_settings($attrs, $text) {
+  $button_type = array('' => t('Dark'), 'glass' => t('Glass'), 'gray' => t('Light'), 'border' => t('Bordered'));
+  $form['button_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Button type'),
+    '#options' => $button_type,
+    '#default_value' => isset($attrs['button_type']) ? $attrs['button_type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-2">',
+  );
+  $form['block'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display as block'),
+    '#default_value' => isset($attrs['block']) ? $attrs['block'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $displays = array('round' => t('Round'), 'circle' => t('Circle'));
+  $form['display'] = array(
+    '#type' => 'select',
+    '#title' => t('Display'),
+    '#options' => $displays,
+    '#default_value' => isset($attrs['display']) ? $attrs['display'] : t('round'),
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $sizes = array('' => t('Small'),  'small' => t('Medium'), 'medium' => t('Big'), 'large' => t('Large'));
+  $form['size'] = array(
+    '#type' => 'select',
+    '#title' => t('Size'),
+    '#options' => $sizes,
+    '#default_value' => isset($attrs['size']) ? $attrs['size'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-2">',
+    '#suffix' => '</div></div>',
+  );  
+  $form['text'] = array(
+    '#title' => t('Text'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['text']) ? $attrs['text'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['link'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Link'),
+    '#default_value' => isset($attrs['link']) ? $attrs['link'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $form['invert'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('White'),
+    '#default_value' => isset($attrs['invert']) ? $attrs['invert'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $form['icon'] = array(
+    '#title' => t('FontAwesome Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/nd_visualshortcodes/icons_autocomplete/font_awesome',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $icon_position = array('' => t('Backward'), 'beside' => t('Beside'));
+  $form['icon_position'] = array(
+    '#type' => 'select',
+    '#title' => t('Icon position'),
+    '#options' => $icon_position,
+    '#default_value' => isset($attrs['icon_position']) ? $attrs['icon_position'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $form['target'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Open in new window'),
+    '#default_value' => isset($attrs['target']) ? $attrs['target'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_bg($attrs, $text) {
+  global $parallax_id;
+  $parallax_id = $parallax_id ? $parallax_id + 1: 0;
+  $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] : '') . (isset($attrs['color']) ? ' ' . $attrs['color'] : '') . ' page-section';
+  $attrs['class'] .= (isset($attrs['banner']) && $attrs['banner']) ? ' parallax-' . $parallax_id : ' bg-scroll';
+  $attrs['class'] .= (isset($attrs['slider']) && $attrs['slider']) ? ' fullwidth-slider bg-scroll owl-carousel owl-theme': '';
+
+  $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+  if (isset($file->uri)) {
+    _rhythm_shortcodes_shortcode_slider_pager_image($file->uri);
+    $attrs['data-background'] = file_create_url($file->uri);
+    $attrs['data-uri'] = $file->uri;
+    $attrs['style'] = (isset($attrs['style']) ? $attrs['style'] : '') . 'background-image: url("' . file_create_url($file->uri) . '");';
+    $attrs['class'] .= ' banner-section';
+  }
+  if (isset($attrs['video']) && $attrs['video']) {
+    global $id;
+    $id = !$id ? 1 : ++$id;
+    $attrs['id'] = 'video-bg-' . $id;
+    $mute = isset($attrs['video_sound']) && $attrs['video_sound'] ? 'false' : 'true';
+    $text = '<div class="player" data-property="{videoURL:\'' . $attrs['video'] . '\',containment:\'#video-bg-' . $id . '\',autoPlay:true, showControls:true, showYTLogo: false, mute:' . $mute . ', startAt:0, opacity:1}"></div>' . $text;
+  }
+  if (isset($attrs['full_height']) && $attrs['full_height']) {
+    $text = '<div class = "js-height-full">' . $text . '</div>';
+    $attrs['class'] .= ' pt-0 pb-0';
+  }
+  $rand = rand(0, 99999);
+  if (isset($attrs['scroll_icon']) && $attrs['scroll_icon']) {
+    $text .= '<div class="local-scroll"><a href="#scroll' . $parallax_id . $rand . '" class="scroll-down"><i class="fa fa-angle-down scroll-down-icon"></i></a></div>';
+  }
+  $output = '<section ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . $text . '</section>';
+  if (isset($attrs['scroll_icon']) && $attrs['scroll_icon']) {
+    $output .= '<span id = "scroll' . $parallax_id . $rand . '"></span>';
+  }
+  return $output;
+}
+
+function rhythm_shortcodes_shortcode_bg_settings($attrs, $text) {
+  $colors = array('bg-dark' => t('Dark'), 'bg-dark-alfa-30' => t('Dark A30'), 'bg-dark-alfa-50' => t('Dark A50'), 'bg-dark-alfa-70' => t('Dark A70'), 'bg-dark-alfa-90' => t('Dark A90'), 'bg-dark-lighter' => t('Dark Lighter'), 'bg-gray' => t('Gray'), 'bg-gray-lighter' => t('Gray Lighter'), '' => t('White'), 'bg-pattern-over' => t('Dotted Overlay'));
+  $form['color'] = array(
+    '#type' => 'select',
+    '#title' => t('Color'),
+    '#options' => $colors,
+    '#default_value' => isset($attrs['color']) ? $attrs['color'] : '',
+    '#attributes' => array('class' => array('color-radios', 'form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $filename = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid'])->uri :'';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename)) : '';
+  $form['fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Image'),
+    '#default_value' => isset($attrs['fid']) ? $attrs['fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Image') .'</a><a href = "#" class = "media-remove button">' . t('Remove Image') .'</a>',
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  $form['slider'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Background Slider'),
+    '#default_value' => isset($attrs['slider']) ? $attrs['slider'] : FALSE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+  );
+  $form['banner'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Parallax'),
+    '#default_value' => isset($attrs['banner']) ? $attrs['banner'] : FALSE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['full_height'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Full Height'),
+    '#default_value' => isset($attrs['full_height']) ? $attrs['full_height'] : FALSE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['scroll_icon'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Scroll Icon'),
+    '#default_value' => isset($attrs['scroll_icon']) ? $attrs['scroll_icon'] : FALSE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $form['video'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Video Background'),
+    '#default_value' => isset($attrs['video']) ? $attrs['video'] : '',
+    '#attributes' => array('class' => array('form-control')),
+  );
+  $form['video_sound'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Video Sound'),
+    '#default_value' => isset($attrs['video_sound']) ? $attrs['video_sound'] : FALSE,
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_feature($attrs, $text) {
+  if (isset($attrs['type'])) {
+    $type = $attrs['type'] == 'ci' ? 'contact' : $attrs['type'];
+  }
+  else{
+    $type = 'alt-features';
+  }
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] . ' ' . $type . '-item' : $type . '-item';
+  $attrs['type'] = isset($attrs['type']) ? $attrs['type'] : '';
+  switch ($attrs['type']) {
+    case 'benefit':
+      $icon = isset($attrs['icon']) ? '<div class="' . $attrs['type'] . '-icon"><i class="' . $attrs['icon'] . '"></i></div>' : '';
+      $text = isset($text) && $text <> '' ? '<div class="' . $attrs['type'] . 's-descr">' . $text . '</div>' : '';
+      $text = $icon . (isset($attrs['text']) ? '<h3 class="' . $attrs['type'] . '-title font-alt">' . $attrs['text'] . '</h3>' : '') . $text;
+      break;
+    case 'alt-service':
+      $icon = isset($attrs['icon']) ? '<div class="' . $attrs['type'] . '-icon"><i class="' . $attrs['icon'] . '"></i></div>' : '';
+      $text = isset($text) && $text <> '' ? $text : '';
+      $text = $icon . (isset($attrs['text']) ? '<h3 class="' . $attrs['type'] . 's-title font-alt">' . $attrs['text'] . '</h3>' : '') . $text;  
+      break;
+    case 'ci':
+      $icon = isset($attrs['icon']) ? '<div class="ci-icon"><i class="' . $attrs['icon'] . '"></i></div>' : '';
+      $text = isset($text) && $text <> '' ? '<div class="ci-text">' . $text . '</div>' : '';
+      $text = $icon . (isset($attrs['text']) ? '<div class="ci-title font-alt">' . $attrs['text'] . '</div>' : '') . $text;
+      break;
+    case 'medium':
+      $icon = isset($attrs['icon']) ? '<div class="section-icon"><span class="' . $attrs['icon'] . '"></span></div>' : '';
+      $text = $icon . (isset($attrs['text']) ? '<h3 class="small-title font-alt">' . $attrs['text'] . '</h3>' : '') . $text;
+      break;
+    default:
+      $icon = isset($attrs['icon']) ? '<div class="' . $attrs['type'] . '-icon"><span class="' . $attrs['icon'] . '"></span></div>' : '';
+      $align = $attrs['type'] == 'alt-features' ? 'align-left' : '';
+      if ($icon != '') {
+        $text = isset($text) && $text <> '' ? '<div class="' . $attrs['type'] . '-descr ' . $align . '">' . $text . '</div>' : '';
+        $text = $icon . (isset($attrs['text']) ? '<h3 class="' . $attrs['type'] . '-title font-alt">' . $attrs['text'] . '</h3>' : '') . $text;
+      }  
+      else{
+        $text = (isset($attrs['text']) ? '<h4 class="mt-0 font-alt">' . $attrs['text'] . '</h4>' : '') . $text;
+        $text = '<div class="' . $attrs['type'] . '-descr ' . $align . '">' . $text . '</div>';
+      }
+      $attrs['class'] .= ' align-center';
+  }
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . $text . '</div>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_feature_settings($attrs, $text) {
+  $form['text'] = array(
+    '#title' => t('Text'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['text']) ? $attrs['text'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['icon'] = array(
+    '#title' => t('Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/rhythm_shortcodes/icons_autocomplete',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+  );
+  $type = array('alt-features' => t('Big Icon'), 'medium' => t('Medium Icon'), 'features' => t('Features'), 'benefit' => t('Benefit'), 'alt-service' => t('Left Small Icon'), 'ci' => t('Contact'));  
+  $form['type'] = array(
+    '#title' => t('Type'),
+    '#type' => 'select',
+    '#options' => $type,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : 'alt-features',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_text_n_tooltip($attrs, $text) {
+  $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] : '') . ' text'; 
+  $text = isset($attrs['title']) ? '<' . $attrs['title_size'] . ' class="uppercase">' . $attrs['title'] . '</' . $attrs['title_size'] .'>' : '';
+  $text .= isset($attrs['first_text']) ? $attrs['first_text'] : '';
+  $text .= isset($attrs['tooltip']) ? '<a class="tooltip-top" title="" href="#" data-original-title="' . $attrs['tooltip_popup'] . '">' . $attrs['tooltip'] . '</a>' : '';
+  $text .= isset($attrs['second_text']) ? $attrs['second_text'] : '';
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . $text . '</div>';
+  return $text; 
+}
+
+function rhythm_shortcodes_shortcode_text_n_tooltip_settings($attrs, $text) {
+  $form['title'] = array(
+    '#title' => t('Title'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $title_size = array('H1' => t('H1'), 'H2' => t('H2'), 'H3' => t('H3'), 'H4' => t('H4'), 'H5' => t('H5'));
+  $form['title_size'] = array(
+    '#title' => t('Title size'),
+    '#type' => 'select',
+    '#options' => $title_size,
+    '#default_value' => isset($attrs['title_size']) ? $attrs['title_size'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );  
+  $form['first_text'] = array(
+    '#title' => t('First text'),
+    '#type' => 'textarea',
+    '#default_value' => isset($attrs['first_text']) ? $attrs['first_text'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  $form['tooltip'] = array(
+    '#title' => t('Tooltip'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['tooltip']) ? $attrs['tooltip'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['tooltip_popup'] = array(
+    '#title' => t('Tooltip Popup'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['tooltip_popup']) ? $attrs['tooltip_popup'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  $form['second_text'] = array(
+    '#title' => t('Second text'),
+    '#type' => 'textarea',
+    '#default_value' => isset($attrs['second_text']) ? $attrs['second_text'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_icon($attrs, $text) {
+  $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] : '') . ' ' . (isset($attrs['icon']) ? $attrs['icon'] : '');
+  $output = '<i ' . _rhythm_shortcodes_shortcode_attributes($attrs) . (isset($attrs['size']) ? ' style = "font-size:' . $attrs['size'] . 'px;"' : '') . '></i>';
+  $attrs['link'] = isset($attrs['link']) && $attrs['link'] ? $attrs['link'] : '#';
+  $class = isset($attrs['boxed']) && $attrs['boxed'] ? 'box1 ' : '';
+  if(isset($attrs['type']) && $attrs['type'] == 'Big Icon') {
+    $output = '<span class = "big-icon">' . $output . '</span>';
+    $class .= ' big-icon-link';
+  }
+  if(strpos($attrs['link'], 'vimeo') !== FALSE || strpos($attrs['link'], 'youtu') !== FALSE) {
+    $class = isset($attrs['no_lightbox']) && $attrs['no_lightbox'] ? '' : ' lightbox-gallery-1 mfp-iframe';
+  }
+  $target = isset($attrs['target']) && $attrs['target'] ? 'target = "_blank"' : '';
+  $output = '<a href="' . $attrs['link'] . '" ' . $target . ' class = "' . $class . '">' . $output . '</a>';
+  if(isset($attrs['type']) && $attrs['type'] == 'Bordered') {
+    $output = '<span class = "footer-social-links">' . $output . '</span>';
+  }
+
+  return $output;
+}
+
+function rhythm_shortcodes_shortcode_icon_settings($attrs, $text) {
+  $form['icon'] = array(
+    '#title' => t('Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/rhythm_shortcodes/icons_autocomplete',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['size'] = array(
+    '#title' => t('Icon size (px)'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['size']) ? $attrs['size'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-2">',
+  );
+  $form['boxed'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Wrap in the Box'),
+    '#default_value' => isset($attrs['boxed']) ? $attrs['boxed'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $form['link'] = array(
+    '#title' => t('Link'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['link']) ? $attrs['link'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $options = array('Default', 'Bordered', 'Big Icon');
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => array_combine($options, $options),
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : 'Default',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  $form['target'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Open in new window'),
+    '#default_value' => isset($attrs['target']) ? $attrs['target'] : FALSE,
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+  );
+  $form['no_lightbox'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Do not show video in lightbox'),
+    '#default_value' => isset($attrs['no_lightbox']) ? $attrs['no_lightbox'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;  
+}
+
+function rhythm_shortcodes_shortcode_message($attrs, $text) {
+  $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] . ' ' : '') . $attrs['message_type']; 
+  switch ($attrs['message_type']) {
+    case 'alert info': $text = '<i class="fa fa-lg fa-comments-o"></i> ';
+        break;
+    case 'alert success': $text = '<i class="fa fa-lg fa-check-circle-o"></i> ';
+        break;
+    case 'alert notice': $text = '<i class="fa fa-lg fa-exclamation-triangle"></i> ';
+        break;
+    case 'alert error': $text = '<i class="fa fa-lg fa-times-circle"></i> ';
+        break;
+  }
+  $output = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . $text . $attrs['text'] . '</div>';
+  return $output;
+}
+
+function rhythm_shortcodes_shortcode_message_settings($attrs, $text) {
+  $form['text'] = array(
+    '#title' => t('Text'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['text']) ? $attrs['text'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $message_type = array('alert info' => t('Info'), 'alert success' => t('Success'), 'alert notice' => t('Notice'), 'alert error' => t('Error'));
+  $form['message_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Message type'),
+    '#options' => $message_type,
+    '#default_value' => isset($attrs['message_type']) ? $attrs['message_type'] : FALSE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;  
+}
+
+function _rhythm_shortcodes_shortcode_slider_pager_image($image = '', $collect = 0) {
+  static $pager;
+  if(!$pager) {
+    $pager = array();
+  }
+  if($image) {
+    $pager[] = $image;
+  }
+  else {
+    $return = $pager;
+    $pager = array();
+    return $return;
+  }
+}
+
+function rhythm_shortcodes_shortcode_slider($attrs, $text) {
+  $attrs['slide_anim'] = isset($attrs['slide_anim']) ? $attrs['slide_anim'] : '';
+  $attrs['class'] = 'slider-wrapper';
+  switch ($attrs['slide_anim']) {
+    case 'single' :
+      $text = '<div class="single-carousel owl-carousel" style="opacity: 1; display: block;">' . $text . '</div>';
+      break;
+    case 'single_auto_slide' :
+      $text = '<div class="single-carousel-auto-slide owl-carousel" style="opacity: 1; display: block;">' . $text . '</div>';
+      break;
+    case 'two_slides' :
+      $text = '<div class="two-item-carousel owl-carousel" style="opacity: 1; display: block;">' . $text . '</div>';
+      break; 
+    case 'three_slides' :
+      $text = '<div class="three-item-carousel owl-carousel" style="opacity: 1; display: block;">' . $text . '</div>';
+      break; 
+    case 'custom_wide' :
+      $text = '<div class="custom-item-carousel owl-carousel" style="opacity: 1; display: block;">' . $text . '</div>';
+      break; 
+    case 'wide' :
+      $text = '<div class="item-carousel owl-carousel owl-theme" style="opacity: 1; display: block;">' . $text . '</div>';
+      break; 
+    case 'small_wide' :
+      $text = '<div class="small-item-carousel black owl-carousel mb-0 animate-init" data-anim-type="fade-in-right-large" data-anim-delay="100">' . $text . '</div>';
+      break; 
+    case 'fullwidth' :
+      $text = '<div class="fullwidth-slider owl-carousel bg-gray owl-theme" style="opacity: 1; display: block;">' . $text . '</div>';
+      break;
+    case 'fullwidth-zoom' :
+      $text = '<div class="fullwidth-slider-fade owl-carousel bg-gray owl-theme" style="opacity: 1; display: block;">' . $text . '</div>';
+      break;
+    case 'fullwidth-bg' :
+      $text = '<div class="fullwidth-gallery owl-carousel bg-gray owl-theme" style="opacity: 1; display: block;">' . $text . '</div>';
+      break;
+    case 'images_pager':
+      $text = '<div class="relative"><div class="home-section fullwidth-slideshow black-arrows bg-dark">' . $text . '</div>';
+      $pager = '<div class="fullwidth-slideshow-pager-wrap"><div class="container"><div class="row"><div class="col-md-8 col-md-offset-2"><div class="fullwidth-slideshow-pager">';
+      preg_match_all("/uri = '([^']*)/i", $text, $matches);
+      foreach ($matches[1] as $value) {
+        $pager .= '<div class="fsp-item">' . theme('image_style', array('style_name' => 'slider_pager', 'path' => $value)) . '</div>';
+      }
+      $pager .= '</div></div></div></div></div></div>';
+      $text .= $pager;
+      break;
+    default:
+      $text = '<div class="work-full-media mt-0 white-shadow">
+        <div class="clearlist work-full-slider owl-carousel owl-theme" style="opacity: 1; display: block;">' . $text . '</div>
+      </div>';                               
+  }
+  return '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . ' data-autoplay = "' . (isset($attrs['slide_autoplay']) ? $attrs['slide_autoplay'] : '') . '">' . $text . '</div>';
+}
+
+function rhythm_shortcodes_shortcode_slider_settings($attrs, $text) {
+  $types = array('single' => t('Single Slide'),'single_auto_slide' => t('Single Slide Auto'),'two_slides' => t('Two Slides'),'three_slides' => t('Three Slides'), 'custom_wide' => t('Seven Slides'), 'fullwidth' => t('Fullwidth'), 'fullwidth-zoom' => t('Fullwidth Zoom Effect'), 'fullwidth-bg' => t('Fullwidth Background'), 'wide' => t('Wide Autoscroll'), 'small_wide' => t('Wide Small Autoscroll'), 'images_pager' => t('Images Pager'));
+  $form['slide_anim'] = array(
+    '#type' => 'select',
+    '#options' => $types,
+    '#title' => t('Slider Type'),
+    '#default_value' => isset($attrs['slide_anim']) ? $attrs['slide_anim'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['slide_autoplay'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Autoplay (in milliseconds)'),
+    '#default_value' => isset($attrs['slide_autoplay']) ? $attrs['slide_autoplay'] : '',
+    '#description' => t('8000 is mean 8seconds'),
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );  
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_slider_item($attrs, $text) {
+  return '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</div>';
+}
+
+function rhythm_shortcodes_shortcode_image($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : '';
+  $file = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid']) : '';
+  $uri = isset($file->uri) ? $file->uri : '';
+  if(!$uri) {
+    return '';
+  }
+  $title = isset($attrs['title']) ? $attrs['title'] : '';
+  $alt = isset($attrs['alt']) ? $attrs['alt'] : '';
+  $attributes = array('style' => '');
+  if(isset($attrs['width']) && $attrs['width']) {
+    $attrs['width'] .= strpos($attrs['width'], '%') === FALSE ? 'px' : '';
+    $attributes['style'] .= 'width:' . $attrs['width'];
+  }
+  if(isset($attrs['height']) && $attrs['height']) {
+    $attrs['height'] .= strpos($attrs['height'], '%') === FALSE ? 'px' : '';
+    $attributes['style'] .= 'height:' . $attrs['height'];
+  }
+  if(isset($attrs['image_style']) && $attrs['image_style']) {
+    $img = theme('image_style', array('style_name' => $attrs['image_style'], 'title' => $title, 'alt' => $alt, 'path' => $uri, 'attributes' => $attributes));
+  }
+  else {
+    $img = theme('image', array('title' => $title, 'alt' => $alt, 'path' => $uri, 'attributes' => $attributes));
+  }
+  $attrs['class'] = isset($attrs['align']) && $attrs['align'] ? 'image-align text-align-' . $attrs['align'] : '';
+  $attrs['href'] = isset($attrs['link']) && $attrs['link'] ? $attrs['link'] : '';
+  $text = $attrs['href'] ? '<a ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . $img . '</a>' : '<span ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . $img . '</span>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_image_settings($attrs, $text) {
+  $filename = isset($attrs['fid']) && !empty($attrs['fid']) ? file_load($attrs['fid'])->uri :'';
+  $image = $filename ? theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $filename)) : '';
+  $form['fid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Image'),
+    '#default_value' => isset($attrs['fid']) ? $attrs['fid'] : '',
+    '#attributes' => array('class' => array('image-media-upload hidden')),
+    '#field_suffix' => '<div class = "preview-image">' . $image . '</div><a href = "#" class = "media-upload button">' . t('Upload Image') .'</a><a href = "#" class = "media-remove button">' . t('Remove Image') .'</a>',
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $styles = array('' => t(' - Original - '));
+  foreach(image_styles() as $name => $style) {
+    $styles[$name] = $style['label'];
+  }
+  $form['image_style'] = array(
+    '#type' => 'select',
+    '#title' => t('Image Style'),
+    '#options' => $styles,
+    '#default_value' => isset($attrs['image_style']) ? $attrs['image_style'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $aligns = array('' => t(' - None - '), 'center' => t('Center'), 'left' => t('Left'), 'right' => t('Right'));
+  $form['align'] = array(
+    '#type' => 'select',
+    '#title' => t('Align'),
+    '#options' => $aligns,
+    '#default_value' => isset($attrs['align']) ? $attrs['align'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $form['link'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Link'),
+    '#default_value' => isset($attrs['link']) ? $attrs['link'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['width'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Width'),
+    '#default_value' => isset($attrs['width']) ? $attrs['width'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['height'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Height'),
+    '#default_value' => isset($attrs['height']) ? $attrs['height'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['alt'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Alt'),
+    '#default_value' => isset($attrs['alt']) ? $attrs['alt'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_tabs($attrs, $text) {
+  global $tab_content;
+  global $tabs_counter;
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : '';
+  // Tab Links
+  $tabs_counter = !$tabs_counter ? 1 : $tabs_counter + 1;
+  $font_class = isset($attrs['type']) && $attrs['type'] == 'alt' ? ' font-alt' : '';
+  $class = ' nav nav-tabs tpl' . (isset($attrs['type']) ? '-' . $attrs['type'] : '') . '-tabs animate' . $font_class;
+  $tabs = '<ul class="' . $class . '">' . $text . '</ul>';
+  
+  if(isset($attrs['centered']) && $attrs['centered']) {
+    $tabs = '<div class="align-center mb-40 mb-xs-30">' . $tabs . '</div>';
+  }
+  // Tab  Content
+  $tab_class = ' tab-content tpl' . (isset($attrs['type']) ? '-' . $attrs['type'] : '') . '-tabs-cont section-text' . 
+    (isset($attrs['centered']) && $attrs['centered'] ? ' align-center' : '');
+  $content = '<div class = "' . $tab_class. '">' . $tab_content . '</div>';
+  // Create tabs 
+  $text = $tabs . $content; 
+  // Check if there is any attributes
+  $attrs = _rhythm_shortcodes_shortcode_attributes($attrs);
+  $text = $attrs ? '<div ' . $attrs  . '>' . $text . '</div>' : $text;
+  // Clear the global variable for next possible tabs
+  $tab_content = '';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_tabs_settings($attrs, $text) {
+  $types = array('' => t('Standard'), 'minimal' => t('Minimal'), 'alt' => t('Big Icons'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => $types,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+  );
+  $form['centered'] = array(
+    '#title' => t('Centered'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['centered']) ? $attrs['centered'] : FALSE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>'
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_tab($attrs, $text) {
+  global $tab_counter;
+  global $tab_content;
+  $tab_counter = !$tab_counter ? rand(0, 999999) : ++$tab_counter;
+  // Tab Link
+  $icon = isset($attrs['icon']) ? (isset($attrs['icon_type']) && $attrs['icon_type'] == 'big' ? '<div class="alt-tabs-icon"><span class="' . $attrs['icon'] .'"></span></div>' : '<i class = "' . $attrs['icon'] .'"></i>') : '';
+
+  $class = isset($attrs['active']) && $attrs['active'] ? 'class = "active"' : '';
+  $output = '<li ' . $class  . '><a data-toggle="tab" href = "#tab-' . $tab_counter . '" aria-expanded="' . (isset($attrs['active']) && $attrs['active'] ? 'true' : 'false') . '">' . $icon . (isset($attrs['title']) ? $attrs['title'] : '') . '</a></li>';
+  // Tab Content
+  $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] : '') . ' tab-pane fade';
+  $attrs['class'] .= isset($attrs['active']) && $attrs['active'] ? ' active in' : '';
+  $attrs['id'] = 'tab-' . $tab_counter;
+  $tab_content .= '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</div>';
+
+  return $output;
+}
+
+function rhythm_shortcodes_shortcode_tab_settings($attrs, $text) {
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+  );
+  $form['icon'] = array(
+    '#title' => t('Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/rhythm_shortcodes/icons_autocomplete',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $types = array('' => t('Default'), 'big' => t('Big'));
+  $form['icon_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Icon Type'),
+    '#options' => $types,
+    '#default_value' => isset($attrs['icon_type']) ? $attrs['icon_type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['active'] = array(
+    '#title' => t('Active'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['active']) ? $attrs['active'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>'
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_quote($attrs, $text) {
+  $attrs['class'] = (isset($attrs['class']) ? $attrs['class'] : '') . (isset($attrs['type']) && $attrs['type'] == 'testimonial' ? ' testimonial' : '');
+  $attrs['class'] .= isset($attrs['type']) && $attrs['type'] == 'blog-item-q' ? ' blog-item-q' : '';
+  if (isset($attrs['type']) && $attrs['type'] != '' && $attrs['type'] != 'blog-item-q') {
+    $text .= '<footer' . ($attrs['type'] == 'testimonial' ? ' class="testimonial-author"' : '') . '>' . 
+      (isset($attrs['footer']) ? $attrs['footer'] : '') . 
+      (isset($attrs['cite']) ? '<cite title="' . $attrs['cite'] . '">' . $attrs['cite'] . '</cite>' : '') . 
+    '</footer>';
+  }
+  $output = '<blockquote ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</blockquote>';
+  return $output;  
+}
+
+function rhythm_shortcodes_shortcode_quote_settings($attrs, $text) {
+  $type = array('' => t('Only Text'), 'blog-item-q' => t('Only Text with Background'), 'footer' => t('Default Quote'), 'testimonial' => t('Testimonial'));
+  $states =  array(
+    'visible' => array(
+      '.quote-type-select' => array('!value' => ''),
+      '.quote-type-select, a' => array('!value' => 'blog-item-q'),
+    ),
+  );
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => $type,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#attributes' => array('class' => array('form-control', 'quote-type-select')),
+  );
+  $form['footer'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Author'),
+    '#default_value' => isset($attrs['footer']) ? $attrs['footer'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#states' => $states
+  );
+  $form['cite'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Description'),
+    '#default_value' => isset($attrs['cite']) ? $attrs['cite'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+    '#states' => $states
+  );
+  return $form;  
+}
+
+function rhythm_shortcodes_shortcode_video($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? ' ' . $attrs['class'] : '';
+  $iframe_attrs = (isset($attrs['width']) ? 'width="' . $attrs['width'] .'"' : '') . (isset($attrs['height']) ? ' height ="' . $attrs['height'] . '"' : '');
+  $attrs['class'] .= ' video';
+  if(strpos($attrs['url'], 'vimeo') !== FALSE) {
+     preg_match('|/(\d+)|', $attrs['url'], $matches);
+     $video_url = '//player.vimeo.com/video/' . $matches[1] . '?title=0&amp;byline=0&amp;portrait=0&amp;color=FFFFFF';
+  }
+  else if(strpos($attrs['url'], 'youtube') !== FALSE) {
+     if (strpos($attrs['url'], '?v=') !== false) {
+        $id = substr($attrs['url'], strpos($attrs['url'], '?v=') + 3);
+        $video_url = '//www.youtube.com/embed/' . $id .'?theme=dark&color=white';
+     }
+     else $video_url = $attrs['url'];
+  }
+  $text = '
+  <div ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>
+    <iframe src="' . $video_url . '" ' . $iframe_attrs . ' allowfullscreen = "allowfullscreen"></iframe>
+  </div>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_video_settings($attrs, $text) {
+  $attrs['url'] = isset($attrs['url']) && $attrs['url'] ? $attrs['url'] : $text;
+  $form['url'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Video Url'),
+    '#default_value' => isset($attrs['url']) ? $attrs['url'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#description' => t('Supports: YouTube and Vimeo')
+  );
+  $form['width'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Width'),
+    '#default_value' => isset($attrs['width']) ? $attrs['width'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['height'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Height'),
+    '#default_value' => isset($attrs['height']) ? $attrs['height'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_pricing_table($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : '';
+  $icon = isset($attrs['icon']) ? '<div class="pricing-icon"><i class="' . $attrs['icon'] . '"></i></div>' : '';
+  $link = isset($attrs['link']) ? $attrs['link'] : '#';
+  $link = strpos($link, '#') === FALSE ? url($link) : $link;
+
+  $text = '<div class="pricing-item' . (isset($attrs['active']) && $attrs['active'] ? ' main' : '') . '">
+    <div class="pricing-item-inner">
+      <div class="pricing-wrap">' . $icon .
+        (isset($attrs['title']) ? '<div class="pricing-title">' . $attrs['title'] . '</div>' : '') .
+        (isset($text) ? '<div class="pricing-features font-alt"><ul class="sf-list pr-list">' . $text . '</ul></div>' : '') .
+        (isset($attrs['price']) ? '<div class="pricing-num"><sup>' . (isset($attrs['sign']) ? $attrs['sign'] : '$') . 
+        '</sup>' . (isset($attrs['price']) ? $attrs['price'] : '') . '</div>' : '') .
+        (isset($attrs['period']) ? '<div class="pr-per"> ' . $attrs['period'] . ' </div>' : '') .
+        (isset($attrs['button']) ? '<div class="pr-button"><a class="btn btn-mod" href="' . $link . '">' . $attrs['button'] . '</a></div>' : '') .
+      '</div>
+    </div>
+  </div>'; 
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . $text . '</div>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_pricing_table_settings($attrs, $text) {
+  $form['icon'] = array(
+    '#title' => t('Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/rhythm_shortcodes/icons_autocomplete',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-4">',
+  );
+  $form['title'] = array(
+    '#title' => t('Title'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-4">',
+    '#suffix' => '</div></div>',
+  );
+  $form['price'] = array(
+    '#title' => t('Price'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['price']) ? $attrs['price'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+  );
+  $form['sign'] = array(
+    '#title' => t('Sign'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['sign']) ? $attrs['sign'] : '$',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-2">',
+  );
+  $form['period'] = array(
+    '#title' => t('Period'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['period']) ? $attrs['period'] : 'per month',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $form['button'] = array(
+    '#title' => t('Button'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['button']) ? $attrs['button'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+  );
+  $form['link'] = array(
+    '#title' => t('Link'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['link']) ? $attrs['link'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-6">',
+  );
+  $form['active'] = array(
+    '#title' => t('Active'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['active']) ? $attrs['active'] : FALSE,
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>'
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_pricing_item($attrs, $text) {
+  $text = isset($attrs['description']) ? '<li ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . $attrs['description'] . '</li>' : '';
+  return $text; 
+}
+
+function rhythm_shortcodes_shortcode_pricing_item_settings($attrs, $text) {
+  $form['description'] = array(
+    '#title' => t('Description'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['description']) ? $attrs['description'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_title($attrs, $text) {
+  $attrs['class'] = isset($attrs['class']) ? $attrs['class'] : '';
+  $attrs['class'] .= isset($attrs['alignment']) ? $attrs['alignment'] : '';
+  $attrs['class'] .= isset($attrs['styled']) && $attrs['styled']? ' font-alt' : '';
+  $attrs['class'] .= isset($attrs['uppercase']) && $attrs['uppercase'] ? ' uppercase' : '';
+  $attrs['class'] .= isset($attrs['color']) ? ' ' . $attrs['color'] : '';
+  $attrs['class'] .= isset($attrs['spacing']) ? ' ' . $attrs['spacing'] : '';
+  $attrs['class'] .= isset($attrs['weight']) ? ' ' . $attrs['weight'] : '';
+  $size = isset($attrs['size']) ? $attrs['size'] : 'h3';
+  if($size == 'h1_big') {
+    $attrs['class'] .= ' hs-line-1';
+    $size = 'h1';
+  }
+  if($size == 'h1_80') {
+    $attrs['class'] .= ' hs-line-12';
+    $size = 'h1';
+  }
+  if($size == 'h2_styled') {
+    $attrs['class'] .= ' hs-line-11';
+    $size = 'h2';
+  }
+  if($size == 'h2_42') {
+    $attrs['class'] .= ' hs-line-14';
+    $size = 'h2';
+  }
+  if($size == 'h2_64') {
+    $attrs['class'] .= ' hs-line-7';
+    $size = 'h2';
+  }
+  if($size == 'h4_styled') {
+    $attrs['class'] .= ' hs-line-8';
+    $size = 'h4';
+  }
+  if($size == 'h6_big') {
+    $attrs['class'] .= ' hs-line-6';
+    $size = 'h6';
+  }
+  $text = '<'. $size . ' ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>' . (isset($attrs['title']) ? $attrs['title']  : '' ). ($text ? $text : '') . '</' . $size . '>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_title_settings($attrs, $text) {
+  $form['title'] = array(
+    '#title' => t('Title'),
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $size = array('h1' => t('H1'), 'h1_big' => t('H1 Big letter spaces'), 'h1_80' => t('H1 80px'), 'h2' => t('H2'), 'h2_styled' => t('H2 Styled'), 'h2_64' => t('H2 64px'), 'h2_42' => t('H2 48px'), 'h3' => t('H3'), 'h4' => t('H4'), 'h4_styled' => t('H4 Small letter spaces'), 'h5' => t('H5'), 'h6' => t('H6'), 'h6_big' => t('H6 transparent'));
+  $form['size'] = array(
+    '#title' => t('Size'),
+    '#type' => 'select',
+    '#options' => $size,
+    '#default_value' => isset($attrs['size']) ? $attrs['size'] : 'h4',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $spacing = array('' => t('Default'), 'ls-01' => t('0.1em'), 'ls-02' => t('0.2em'), 'ls-03' => t('0.3em'), 'ls-04' => t('0.4em'), 'ls-05' => t('0.5em'), 'ls-06' => t('0.6em'), 'ls-07' => t('0.7em'), 'ls-08' => t('0.8em'), 'ls-09' => t('0.9em'), 'ls-10' => t('1.0em'));
+  $form['spacing'] = array(
+    '#title' => t('Letter Spacing'),
+    '#type' => 'select',
+    '#options' => $spacing,
+    '#default_value' => isset($attrs['spacing']) ? $attrs['spacing'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $alignment = array(' align-left' => t('Left'), ' align-center' => t('Center'), ' align-right' => t('Right'));
+  $form['alignment'] = array(
+    '#title' => t('Alignment'),
+    '#type' => 'select',
+    '#options' => $alignment,
+    '#default_value' => isset($attrs['alignment']) ? $attrs['alignment'] : ' align-left',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+  );
+  $form['styled'] = array(
+    '#title' => t('Styled font'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['styled']) ? $attrs['styled'] : TRUE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['uppercase'] = array(
+    '#title' => t('Uppercase'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['uppercase']) ? $attrs['uppercase'] : TRUE,
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $color = array('black' => t('Black'), 'white' => t('White'), 'gray' => t('Gray'));
+  $form['color'] = array(
+    '#title' => t('Color'),
+    '#type' => 'select',
+    '#options' => $color,
+    '#default_value' => isset($attrs['color']) ? $attrs['color'] : 'black',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  $weight = array('' => t('Default'), 'fw-300' => t('300'), 'fw-400' => t('400'), 'fw-600' => t('600'));
+  $form['weight'] = array(
+    '#title' => t('Font weight'),
+    '#type' => 'select',
+    '#options' => $weight,
+    '#default_value' => isset($attrs['weight']) ? $attrs['weight'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_hr($attrs, $text) {
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '><hr class="mt-0 mb-0"></div>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_accordions($attrs, $text) {
+  $attrs['class'] = isset($attrs['multiple_active']) && $attrs['multiple_active'] ? 'toggle' : 'accordion';
+  $text = '<dl ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</dl>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_accordions_settings($attrs, $text) {
+  $form['multiple_active'] = array(
+    '#title' => t('Multiple active'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($attrs['multiple_active']) ? $attrs['multiple_active'] : FALSE,
+  );  
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_accordion($attrs, $text) {
+  $icon = isset($attrs['icon']) && $attrs['icon']  ? '<i class="' . $attrs['icon'] . '"></i> ' : '';
+  $text = '<dt ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>
+    <a href="#">
+      ' . $icon . $attrs['title'] . '
+    </a>
+  </dt>
+  <dd>
+      ' . $text . '
+  </dd>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_accordion_settings($attrs, $text) {
+  $form['title'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Title'),
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  $form['icon'] = array(
+    '#title' => t('Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/rhythm_shortcodes/icons_autocomplete',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_gmap($attrs, $text) {
+  $attrs['class'] = 'google-map' . (isset($attrs['class']) ? ' ' . $attrs['class'] : '');
+  $text = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs) . '>
+    <div id="map-canvas" style="height: ' . (isset($attrs['height']) ? $attrs['height'] : 410) . 'px;"
+      data-zoom="' . (isset($attrs['zoom']) ? $attrs['zoom'] : 14) . '"
+      data-address="' . (isset($attrs['address']) ? $attrs['address'] : '') . '"
+      data-type="' . $attrs['type'] . '">
+    </div>
+    ' . (isset($attrs['overlay']) && $attrs['overlay'] ?
+      '<div class="map-section">
+        <div class="map-toggle">
+          <div class="mt-icon">
+            <i class="fa fa-map-marker"></i>
+          </div>
+          <div class="mt-text font-alt">
+            <div class="mt-open">' . t('Open the map') . ' <i class="fa fa-angle-down"></i></div>
+            <div class="mt-close">' . t('Close the map') . ' <i class="fa fa-angle-up"></i></div>
+          </div>
+        </div>          
+      </div>' : '' ) . '
+  </div>';
+  return $text;
+}
+
+function rhythm_shortcodes_shortcode_gmap_settings($attrs, $text) {
+  $types = array('roadmap' => t('Roadmap'), 'hybrid' => t('Hybrid'), 'satellite' => t('Satellite'));
+  $form['type'] = array(
+    '#type' => 'select',
+    '#title' => t('Type'),
+    '#options' => $types,
+    '#default_value' => isset($attrs['type']) ? $attrs['type'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['overlay'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Overlay Open/Close'),
+    '#default_value' => isset($attrs['overlay']) ? $attrs['overlay'] : TRUE,
+    '#prefix' => '</div><div class = "col-sm-6">',
+    '#suffix' => '</div></div>',
+  );
+  $form['address'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Address'),
+    '#default_value' => isset($attrs['address']) ? $attrs['address'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['zoom'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Zoom'),
+    '#default_value' => isset($attrs['zoom']) ? $attrs['zoom'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['height'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Height'),
+    '#default_value' => isset($attrs['height']) ? $attrs['height'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_counter($attrs, $text) {
+  $output = '<div ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>
+    ' . (isset($attrs['number']) ? '<div class="count-number">' . $attrs['number'] . '</div>' : '') . '
+    <div class="count-descr font-alt">
+      ' . (isset($attrs['icon'])  && $attrs['icon']? '<i class="' . $attrs['icon'] . '"></i>' : '') . '
+      ' . (isset($attrs['title'])  && $attrs['title']? '<span class="count-title">' . $attrs['title'] . '</span>' : '') . '
+    </div>
+  </div>';
+  return $output;
+}
+
+function rhythm_shortcodes_shortcode_counter_settings($attrs, $text) {
+  $form['title'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Title'),
+    '#default_value' => isset($attrs['title']) ? $attrs['title'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '<div class = "row"><div class = "col-sm-6">',
+  );
+  $form['icon'] = array(
+    '#title' => t('Icon'),
+    '#type' => 'textfield',
+    '#autocomplete_path' => 'admin/ajax/rhythm_shortcodes/icons_autocomplete',
+    '#default_value' => isset($attrs['icon']) ? $attrs['icon'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+  );
+  $form['number'] = array(
+    '#type' => 'textfield' ,
+    '#title' => t('Number'),
+    '#default_value' => isset($attrs['number']) ? $attrs['number'] : '',
+    '#attributes' => array('class' => array('form-control')),
+    '#prefix' => '</div><div class = "col-sm-3">',
+    '#suffix' => '</div></div>',
+  );
+  return $form;
+}
+
+function rhythm_shortcodes_shortcode_text_rotator($attrs, $text) {
+  $text = '';
+  foreach($attrs as $name => $value) {
+    if(strpos($name, 'text_line_') === 0) {
+      $text .= $value . ",\n";
+    }
+  }
+  $text = trim($text, ",\n");
+  $attrs['class'] = 'text-rotate' . (isset($attrs['class']) ? ' ' . $attrs['class'] : '');
+  return '<span ' . _rhythm_shortcodes_shortcode_attributes($attrs)  . '>' . $text . '</span>';
+}
+
+function rhythm_shortcodes_shortcode_text_rotator_settings($attrs, $text, $form, &$form_state) {
+  if(isset($form_state['values'])) {
+    $attrs = $form_state['values'];
+  }
+  // Ajax handled Items
+  $form['items'] = array(
+    '#type' => 'container',
+    '#attributes' => array('id' => array('nd_visualshortcodes_text_rotator')),
+  );
+
+  $attrs['text_line_1'] = isset($attrs['text_line_1']) ? $attrs['text_line_1'] : '';
+
+  foreach($attrs as $name => $value) {
+    if(strpos($name, 'text_line_') === 0) {
+      $i = str_replace('text_line_', '', $name);
+      $form['items'] += rhythym_shortcodes_shortcode_text_rotator_item($attrs, $i);
+    }
+  }   
+
+  // Add new row
+  if($form_state['values']['op'] == t('Add new row')) {
+    $form['items'] += rhythym_shortcodes_shortcode_text_rotator_item($attrs, ++$i);
+  }
+
+  $form['add_new'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add new row'),
+    '#submit' => array('rhythm_shortcodes_shortcode_ajax_rebuild'),
+    '#ajax' => array(
+      'callback' => 'rhythm_shortcodes_shortcode_list_ajax_callback',
+      'wrapper' => 'nd_visualshortcodes_text_rotator',
+      'effect' => 'fade',
+      'method' => 'replace',
+    )
+  );
+
+  return $form;
+}
+
+function rhythym_shortcodes_shortcode_text_rotator_item($attrs, $i) {
+  $form['text_line_' . $i] = array(
+    '#type' => 'textfield',
+    '#default_value' => isset($attrs['text_line_' . $i]) ? $attrs['text_line_' . $i] : '',
+    '#attributes' => array('class' => array('form-control'))
+  );
+  return $form;
+}
+
+
+function rhythm_shortcodes_shortcode_ajax_rebuild($form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
+}
+
+function rhythm_shortcodes_shortcode_list_ajax_callback($form, $form_state) {
+  return $form['shortcode']['settings']['items'];
+}

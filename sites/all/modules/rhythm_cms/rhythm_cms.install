@@ -1,0 +1,9 @@
+<?php
+
+
+function rhythm_cms_install() {
+  variable_set('site_404', 'page-404');
+  include dirname(__FILE__) . '/rhythm_layoutbuilder_import/rhythm_cms_layout_builder_settings.php';
+  variable_set('nikadevs_cms_layout_rhythm', $layouts);
+  variable_set('nikadevs_cms_layout_rhythm_sub', $layouts);
+}

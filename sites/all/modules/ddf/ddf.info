@@ -1,0 +1,12 @@
+name = Dynamic dependent fields
+description = Makes field value or options depend on other field values when editing entity.
+core = 7.x
+package = Fields
+dependencies[] = entity
+
+; Information added by Drupal.org packaging script on 2016-02-07
+version = "7.x-1.8+3-dev"
+core = "7.x"
+project = "ddf"
+datestamp = "1454864940"
+

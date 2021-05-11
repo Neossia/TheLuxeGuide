@@ -1,0 +1,14 @@
+name = SendinBlue Mail System
+description = SendinBlue email service integration in mail system.
+core = 7.x
+
+files[] = includes/sib_ms.mail.inc
+
+dependencies[] = sendinblue
+dependencies[] = htmlmail
+
+; Information added by Drupal.org packaging script on 2019-10-08
+version = "7.x-1.3"
+core = "7.x"
+project = "sib_ms"
+datestamp = "1570543686"

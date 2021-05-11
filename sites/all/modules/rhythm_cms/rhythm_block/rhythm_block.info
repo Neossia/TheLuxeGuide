@@ -1,0 +1,9 @@
+name = Rhythm Block
+description = Blocks for Rhythm theme.
+core = 7.x
+package = NikaDevs
+version = 7.x-1.0
+project = rhythm_block
+dependencies[] = blockexport
+features[blockexport_settings][] = block_settings
+features[features_api][] = api:2

@@ -1,0 +1,3 @@
+name = Custom Module
+description = This is a custom module for additional hooks and computations
+core = 7.x

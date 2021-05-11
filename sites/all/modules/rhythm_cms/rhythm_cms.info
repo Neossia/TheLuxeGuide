@@ -1,0 +1,6 @@
+; $Id: 
+name = Rhythm theme module
+description = Functions for Rhythm theme
+package = "NikaDevs"
+version = "7.x - 1.2"
+core = 7.x

@@ -1,0 +1,306 @@
+<?php
+
+/**
+ * @file
+ * ImageOptim API web service integration for image optimitzation.
+ */
+
+const IMAGEOPTIM_WS_URI = 'https://im2.io';
+
+/**
+ * Implements hook_menu().
+ */
+function imageoptim_menu() {
+  $items = array();
+  $items['admin/config/media/imageoptim'] = array(
+    'title' => 'Image optim',
+    'page callback' => 'drupal_get_form',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'page arguments' => array('imageoptim_admin_form'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'imageoptim.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_image_effect_info().
+ */
+function imageoptim_image_effect_info() {
+  $effects = array();
+  $effects['imageoptim'] = array(
+    'label' => t('Optimize image'),
+    'help' => t('Reduces the image filesize using the ImageOptim web service.'),
+    'effect callback' => 'imageoptim_effect',
+    'form callback' => 'imageoptim_form',
+    'summary theme' => 'imageoptim_summary',
+  );
+
+  return $effects;
+}
+
+/**
+ * Effect callback.
+ */
+function imageoptim_effect(&$image, $data) {
+  $username = variable_get('imageoptim_username');
+  // Validate the username before change the image toolkit to avoid break images
+  // if it does not exist.
+  if (empty($username)) {
+    watchdog('imageoptim', 'Image optim web service username not defined. The effect can not be applied on %path.', array('%path' => $image->source), WATCHDOG_ERROR);
+
+    return FALSE;
+  }
+
+  // Set a new toolkit and pass the options to act in node_save. We cannot use
+  // now imageOptim service because at the end of the process we will do a
+  // node_save using the default toolkit like GD and we will lose the image
+  // optimization. We need to act in the final resource save.
+  $image->toolkit = 'io';
+  if ($data['height'] > 0) {
+    $image->height = $data['height'];
+  }
+  if ($data['width'] > 0) {
+    $image->width = $data['width'];
+  }
+  $image->options = imageoptim_compose_options($data);
+
+  return TRUE;
+}
+
+/**
+ * ImageOptim node save to write an image resource to a destination file.
+ *
+ * @param object $image
+ *   An image object.
+ * @param string $destination
+ *   A string file URI or path where the image should be saved.
+ *
+ * @return bool
+ *   TRUE or FALSE, based on success.
+ *
+ * @see image_save()
+ */
+function image_io_save(stdClass $image, $destination) {
+  // Closes the image and materialize the resource using the default toolkit.
+  $image->toolkit = image_get_toolkit();
+  if ($success = image_save($image, $destination)) {
+    imageoptim_optimize_image($destination, $image->options);
+    // Clear the cached file size and refresh the image information.
+    clearstatcache();
+    $image->info = image_get_info($destination, $image->toolkit);
+  }
+
+  return $success;
+}
+
+/**
+ * Effect configuration.
+ */
+function imageoptim_form($data) {
+  $form = array();
+  $form['quality'] = array(
+    '#type' => 'select',
+    '#title' => t('Image quality'),
+    '#default_value' => isset($data['quality']) ? $data['quality'] : variable_get('imageoptim_quality', 'medium'),
+    '#options' => array(
+      'lossless' => t('Lossless'),
+      'high' => t('High'),
+      'medium' => t('Medium'),
+      'low' => t('Low'),
+    ),
+    '#description' => t('Higher quality images cost more bandwidth and download slowly. Lower quality images are faster and take less disk space.'),
+  );
+  $form['format'] = array(
+    '#type' => 'select',
+    '#title' => t('Format'),
+    '#default_value' => isset($data['format']) ? $data['format'] : '',
+    '#options' => array(
+      '' => t('Automatically'),
+      'png' => t('png'),
+      'jpeg' => t('jpeg'),
+      'webm' => t('webm'),
+      'h264' => t('h264'),
+    ),
+    '#description' => t('By default the best file format is chosen automatically.'),
+  );
+  $form['width'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Max width'),
+    '#default_value' => isset($data['width']) ? $data['width'] : '',
+    '#description' => t("Maximum image width. If the height it's not defined will vary depending on image's aspect ratio."),
+    '#element_validate' => array('element_validate_integer_positive'),
+    '#field_suffix' => t('píxels'),
+    '#size' => 10,
+  );
+  $form['height'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Max height'),
+    '#default_value' => isset($data['height']) ? $data['height'] : '',
+    '#description' => t('Maximum image height. Dimensions are specified in pixels without the px suffix.'),
+    '#element_validate' => array('element_validate_integer_positive'),
+    '#field_suffix' => t('píxels'),
+    '#size' => 10,
+  );
+  $form['options'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Additional options'),
+    '#default_value' => isset($data['options']) ? $data['options'] : '',
+    '#description' => t('Additional options separated by commas. See <a href="@url">options overview</a>.', array('@url' => 'https://imageoptim.com/api/post#options')),
+    '#element_validate' => array('element_validate_integer_positive'),
+  );
+
+  return $form;
+}
+
+/**
+ * Theme function for image optim effect summary.
+ */
+function theme_imageoptim_summary($variables) {
+  return '(' . imageoptim_compose_options($variables['data']) . ')';
+}
+
+/**
+ * Implements hook_theme().
+ */
+function imageoptim_theme() {
+  return array(
+    'imageoptim_summary' => array(
+      'variables' => array('data' => NULL),
+    ),
+  );
+}
+
+/**
+ * Optimitze the image using ImageOptim API web service.
+ *
+ * @return bool
+ *   TRUE or FALSE, based on success.
+ */
+function imageoptim_optimize_image($uri, $options) {
+  $username = variable_get('imageoptim_username');
+  $api_call = IMAGEOPTIM_WS_URI . '/' . $username . '/' . $options;
+
+  // Load the image data and send to ImageOptim WebService.
+  $boundary = md5(uniqid());
+  $headers = array('Content-Type' => "multipart/form-data; boundary=$boundary");
+  $request_options = array(
+    'method' => 'POST',
+    'data' => imageoptim_multipart_encode($boundary, $uri),
+    'headers' => $headers,
+  );
+  $response = drupal_http_request($api_call, $request_options);
+
+  if ($response->code == 200 && $response->headers['content-length'] > 0) {
+    // Get the remote file data and save as temporary file.
+    $file = file_unmanaged_save_data($response->data, $uri, FILE_EXISTS_REPLACE);
+    if ($file) {
+      watchdog('imageoptim', 'Image file %uri optimized with ImageOptim.', array('%uri' => $uri), WATCHDOG_INFO);
+    }
+    else {
+      watchdog('imageoptim', 'Image file %uri cannot be saved.', array('%uri' => $uri), WATCHDOG_ERROR);
+
+      return FALSE;
+    }
+  }
+  else {
+    watchdog('imageoptim', 'Image optim web service error: %error.', array('%error' => $response->error), WATCHDOG_ERROR);
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+/**
+ * Helper to create multi-part/form data for file requests.
+ */
+function imageoptim_multipart_encode($boundary, $path) {
+  if (substr($path, 0, 1) == '@') {
+    $path = substr($path, 1);
+  }
+  $filename = basename($path);
+  $mimetype = "application/octet-stream";
+
+  $output = "--$boundary\r\n";
+  $output .= "Content-Disposition: form-data; name=\"file\"; filename=\"$filename\"\r\n";
+  $output .= "Content-Transfer-Encoding: binary\r\n";
+  $output .= "Content-Type: $mimetype\r\n\r\n";
+  $output .= file_get_contents($path) . "\r\n";
+  $output .= "--$boundary--";
+
+  return $output;
+}
+
+/**
+ * Helper to compose image options for call request.
+ */
+function imageoptim_compose_options($data = array()) {
+  // Append default options.
+  $data += imageoptim_default_options();
+
+  $image_options = array();
+  // Defaultable options.
+  if (!empty($data['quality'])) {
+    $image_options[] = 'quality=' . $data['quality'];
+  }
+  if (!empty($data['timeout'])) {
+    $image_options[] = 'timeout=' . $data['timeout'];
+  }
+  // Additional options.
+  if (isset($data['format']) && !empty($data['format'])) {
+    $image_options[] = 'format=' . $data['format'];
+  }
+  if (isset($data['width']) && !empty($data['width'])) {
+    if (isset($data['height']) && !empty($data['height'])) {
+      $image_options[] = $data['width'] . 'x' . $data['height'];
+    }
+    else {
+      $image_options[] = $data['width'];
+    }
+  }
+  if (isset($data['options']) && !empty($data['options'])) {
+    $image_options[] = trim($data['options']);
+  }
+
+  return implode($image_options, ',');
+}
+
+/**
+ * ImageOptim default options.
+ */
+function imageoptim_default_options() {
+  return array(
+    'quality' => variable_get('imageoptim_quality'),
+    'timeout' => variable_get('imageoptim_timeout'),
+  );
+}
+
+/**
+ * Implements hook_file_presave().
+ */
+function imageoptim_file_presave($file) {
+  if (variable_get('imageoptim_presave', 0) == 1) {
+    // Only act on permanent files and supported file types.
+    $mimetypes = imageoptim_supported_mimetypes();
+    if ($file->status == 1 && in_array($file->filemime, $mimetypes)) {
+      $options = imageoptim_compose_options();
+      imageoptim_optimize_image($file->uri, $options);
+      // Update the filesize.
+      $file->filesize = filesize($file->uri);
+    }
+  }
+}
+
+/**
+ * List of supported mimetypes.
+ */
+function imageoptim_supported_mimetypes() {
+  return array(
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+  );
+}

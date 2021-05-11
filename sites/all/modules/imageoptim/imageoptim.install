@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * @file
+ * ImageOptim unistall variables deletion.
+ */
+
+/**
+ * Implements hook_unistall().
+ */
+function imageoptim_uninstall() {
+  variable_del('imageoptim_username');
+  variable_del('imageoptim_timeout');
+  variable_del('imageoptim_quality');
+  variable_del('imageoptim_presave');
+  variable_del('imageoptim_last_manual_run');
+}

@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Rhythm Features feature.
+ */
+
+include_once 'rhythm_features.features.inc';

@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the sendinblue module.
+ */
+
+/**
+ * Implements hook_enable().
+ */
+function sib_ms_enable() {
+  mailsystem_set(array('default-system' => 'SibMs'));
+}
+
+/**
+ * Implements hook_disable().
+ */
+function sib_ms_disable() {
+  mailsystem_clear(array('default-system' => 'SibMs'));
+}
